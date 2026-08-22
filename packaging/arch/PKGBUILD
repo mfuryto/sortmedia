@@ -1,11 +1,11 @@
 pkgname=sortmedia
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc='Sort photos and videos using recording metadata'
 arch=('any')
 url='https://github.com/mfuryto/sortmedia'
 license=('MIT')
-depends=('python>=3.11' 'python-pillow' 'perl-image-exiftool')
+depends=('python>=3.10' 'python-pillow' 'perl-image-exiftool')
 source=("sortmedia-$pkgver.tar.gz")
 sha256sums=('SKIP')
 

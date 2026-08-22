@@ -1,4 +1,3 @@
 """Sort photos and videos using their recorded date."""
 
-__version__ = "0.1.0"
-
+__version__ = "0.1.1"

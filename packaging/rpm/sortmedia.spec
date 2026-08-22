@@ -1,12 +1,12 @@
 Name:           sortmedia
-Version:        0.1.0
+Version:        0.1.1
 Release:        1%{?dist}
 Summary:        Sort photos and videos using recording metadata
 License:        MIT
 URL:            https://github.com/mfuryto/sortmedia
 Source0:        %{name}-%{version}.tar.gz
 BuildArch:      noarch
-Requires:       python3 >= 3.11
+Requires:       python3 >= 3.10
 Requires:       python3-pillow
 Requires:       perl-Image-ExifTool
 
@@ -37,5 +37,8 @@ install -m 644 README.md %{buildroot}%{_docdir}/sortmedia/
 %{_mandir}/man1/sortmedia.1*
 
 %changelog
+* Sat Aug 22 2026 Mikal Furyto <mfuryto@users.noreply.github.com> - 0.1.1-1
+- Add Python 3.10 and Ubuntu 22.04 support
+
 * Sat Aug 22 2026 Mikal Furyto <mfuryto@users.noreply.github.com> - 0.1.0-1
 - Initial package
