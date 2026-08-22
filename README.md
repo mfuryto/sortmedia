@@ -291,6 +291,26 @@ roll back their already-completed operations if another member fails. Layout
 and filename templates cannot use absolute paths or escape the destination
 with `..`.
 
+## Plex users
+
+If a Sortmedia working directory is inside a Plex library, do not assume that
+Plex will ignore `.sortmedia/trash` merely because the directory is hidden.
+Create a file named `.plexignore` in the Plex library root and add:
+
+```text
+# Ignore Sortmedia state, history, and recoverable trash
+.sortmedia/*
+```
+
+The rule excludes only `.sortmedia` and its contents. All other directories in
+the library root continue to be scanned normally. Preserve any rules already
+present in `.plexignore`, and add the rule to each Plex content root that may
+contain a Sortmedia state directory.
+
+After adding the rule, scan the Plex library again. Plex's **Empty Trash**
+command removes stale entries from the Plex database; it is separate from
+Sortmedia's recoverable `.sortmedia/trash` and does not purge those files.
+
 ## Distribution packages
 
 Build all package formats supported by the current host:
