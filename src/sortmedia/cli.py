@@ -53,7 +53,7 @@ More documentation: man sortmedia""",
         metavar="FILE",
         help="hidden TOML config; repeat to run multiple jobs in order",
     )
-    result.add_argument("--version", action="version", version="%(prog)s 0.1.1")
+    result.add_argument("--version", action="version", version="%(prog)s 0.1.2")
     result.add_argument(
         "-r", "--run-local",
         action="store_true",
@@ -320,17 +320,24 @@ def interactive_menu(
         if cleanup_choice:
             videos = find_live_photo_videos(current)
             if not videos:
-                print("No Live Photo short videos found.")
+                print("No metadata-confirmed Live Photo short videos found.")
                 return 0
-            print(f"\nFound {len(videos)} possible Live Photo short video(s):")
-            for video in videos:
-                print(f"  {video.relative_to(current)}")
-            confirm = input_fn("Move these videos to recoverable .sortmedia/trash (yes/no) [no]: ").strip().lower() or "no"
-            if confirm not in {"yes", "y"}:
+            total_size = sum(candidate.size for candidate in videos)
+            print(f"\nFound {len(videos)} metadata-confirmed Live Photo video(s), {format_size(total_size)} total:")
+            for candidate in videos:
+                duration = f", {candidate.duration}" if candidate.duration else ""
+                print(f"\n  Video: {candidate.video.relative_to(current)} ({format_size(candidate.size)}{duration})")
+                print(f"  Photo: {candidate.image.relative_to(current)}")
+                print(f"  Proof: matching Apple ContentIdentifier {candidate.content_identifier}")
+            print("\nVideos matched only by filename are excluded. Files are moved to recoverable trash, not deleted.")
+            confirm = input_fn("Type MOVE to move these confirmed videos to .sortmedia/trash: ").strip()
+            if confirm != "MOVE":
                 print("No files changed.")
                 return 0
             try:
-                run_id, moved = trash_live_photo_videos(current, videos)
+                run_id, moved = trash_live_photo_videos(
+                    current, [candidate.video for candidate in videos]
+                )
             except (OSError, ValueError) as error:
                 print(f"Error: {error}", file=sys.stderr)
                 return 1

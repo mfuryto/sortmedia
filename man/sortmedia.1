@@ -1,4 +1,4 @@
-.TH SORTMEDIA 1 "August 2026" "sortmedia 0.1.1" "User Commands"
+.TH SORTMEDIA 1 "August 2026" "sortmedia 0.1.2" "User Commands"
 .SH NAME
 sortmedia \- sort photos and videos by recording date
 .SH SYNOPSIS
@@ -40,10 +40,11 @@ in the same config file while preserving all other settings and comments.
 Non-interactive use requires
 .BR \-\-config .
 .PP
-The main menu also contains an independent Live Photo cleanup tool. It scans
-existing subdirectories for same-named image/video pairs, previews all matches,
-and moves confirmed video companions to recoverable .sortmedia/trash without
-sorting any files.
+The main menu also contains an independent Live Photo cleanup tool. It lists
+only image/video pairs with matching Apple ContentIdentifier metadata, shows
+the paired image, video size, duration, and identifier, and excludes matches
+based only on filenames. Typing MOVE sends the confirmed video companions to
+recoverable .sortmedia/trash without sorting any files.
 .PP
 Exact duplicate detection uses SHA-256 across filenames. Optional perceptual
 matching combines structural, luminance, and color fingerprints. Dangerous
@@ -155,9 +156,12 @@ Filename template. The original extension is preserved.
 Output timezone: local, UTC, or an IANA name such as Europe/Oslo.
 .TP
 .B live_photo_videos
-Controls same-named Live Photo video companions: include sorts the video with
-the image, leave keeps it in the source, and trash moves it to recoverable
+Controls metadata-confirmed Live Photo video companions: include sorts the
+video with the image, leave keeps it in the source, and trash moves it to
+recoverable
 .IR .sortmedia/trash .
+Leave and trash require an identical Apple ContentIdentifier in the image and
+video; matching filenames alone are insufficient.
 .TP
 .B duplicates
 .B hash

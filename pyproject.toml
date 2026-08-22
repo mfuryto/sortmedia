@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sortmedia"
-version = "0.1.1"
+version = "0.1.2"
 description = "Safely organize media with directory-local configs, companion awareness, duplicate detection, and undo"
 requires-python = ">=3.10"
 dependencies = [

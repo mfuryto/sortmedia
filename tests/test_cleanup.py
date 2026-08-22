@@ -1,6 +1,7 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from sortmedia.cleanup import format_size, find_live_photo_videos, purge_trash, trash_live_photo_videos, trash_stats
 from sortmedia.history import undo_run
@@ -27,7 +28,7 @@ class LivePhotoCleanupTests(unittest.TestCase):
             self.assertFalse((root / ".sortmedia" / "trash").exists())
             self.assertTrue(history_file.exists())
 
-    def test_finds_pairs_recursively_but_ignores_standalone_videos_and_state(self) -> None:
+    def test_finds_only_metadata_confirmed_pairs_and_reports_details(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             album = root / "2025" / "07"
@@ -40,7 +41,31 @@ class LivePhotoCleanupTests(unittest.TestCase):
             internal.parent.mkdir()
             internal.write_bytes(b"internal")
 
-            self.assertEqual(find_live_photo_videos(root), [paired])
+            metadata = {
+                (album / "IMG_1000.HEIC").resolve(): {"ContentIdentifier": "LIVE-ID"},
+                paired.resolve(): {"ContentIdentifier": "LIVE-ID", "Duration": "2.8 s"},
+                (album / "holiday.MOV").resolve(): {},
+            }
+            with patch("sortmedia.cleanup.metadata_for_files", return_value=metadata):
+                candidates = find_live_photo_videos(root)
+
+            self.assertEqual(len(candidates), 1)
+            self.assertEqual(candidates[0].video, paired.resolve())
+            self.assertEqual(candidates[0].image, (album / "IMG_1000.HEIC").resolve())
+            self.assertEqual(candidates[0].size, 4)
+            self.assertEqual(candidates[0].duration, "2.8 s")
+            self.assertEqual(candidates[0].content_identifier, "LIVE-ID")
+
+    def test_same_filename_without_matching_metadata_is_excluded(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            image = root / "holiday.JPG"
+            video = root / "holiday.MOV"
+            image.write_bytes(b"image")
+            video.write_bytes(b"unrelated video")
+
+            with patch("sortmedia.cleanup.metadata_for_files", return_value={}):
+                self.assertEqual(find_live_photo_videos(root), [])
 
     def test_cleanup_preserves_relative_path_and_is_undoable(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

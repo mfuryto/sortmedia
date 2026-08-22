@@ -22,7 +22,11 @@ class CompanionTests(unittest.TestCase):
             video.write_bytes(b"video")
             config = JobConfig(source=source, destination=destination, operation="copy", live_photo_videos="leave")
 
-            with patch("sortmedia.core.recorded_date", return_value=(datetime(2026, 8, 22, 12, 30), "test")):
+            metadata = {
+                image.resolve(): {"ContentIdentifier": "LIVE-ID"},
+                video.resolve(): {"ContentIdentifier": "LIVE-ID"},
+            }
+            with patch("sortmedia.core.metadata_for_files", return_value=metadata), patch("sortmedia.core.recorded_date", return_value=(datetime(2026, 8, 22, 12, 30), "test")):
                 processed, skipped = run_job(config)
 
             self.assertEqual((processed, skipped), (1, 1))
@@ -42,7 +46,11 @@ class CompanionTests(unittest.TestCase):
             video.write_bytes(b"video")
             config = JobConfig(source=source, destination=destination, operation="copy", live_photo_videos="trash")
 
-            with patch("sortmedia.core.recorded_date", return_value=(datetime(2026, 8, 22, 12, 30), "test")):
+            metadata = {
+                image.resolve(): {"ContentIdentifier": "LIVE-ID"},
+                video.resolve(): {"ContentIdentifier": "LIVE-ID"},
+            }
+            with patch("sortmedia.core.metadata_for_files", return_value=metadata), patch("sortmedia.core.recorded_date", return_value=(datetime(2026, 8, 22, 12, 30), "test")):
                 run_job(config, state)
             self.assertFalse(video.exists())
             self.assertTrue(list((state / "trash").rglob("*.MOV")))
@@ -50,6 +58,27 @@ class CompanionTests(unittest.TestCase):
             undo_run(state)
             self.assertTrue(video.exists())
             self.assertFalse(list(destination.rglob("*.heic")))
+
+    def test_same_named_video_without_live_photo_metadata_is_not_trashed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "incoming"
+            destination = root / "archive"
+            state = root / ".sortmedia"
+            source.mkdir()
+            image = source / "holiday.JPG"
+            video = source / "holiday.MOV"
+            image.write_bytes(b"image")
+            video.write_bytes(b"unrelated video")
+            config = JobConfig(source=source, destination=destination, operation="copy", live_photo_videos="trash")
+
+            with patch("sortmedia.core.metadata_for_files", return_value={}), patch("sortmedia.core.recorded_date", return_value=(datetime(2026, 8, 22, 12, 30), "test")):
+                processed, skipped = run_job(config, state)
+
+            self.assertEqual((processed, skipped), (2, 0))
+            self.assertTrue(video.exists())
+            self.assertTrue(list(destination.rglob("*.mov")))
+            self.assertFalse(list((state / "trash").rglob("*.MOV")))
 
     def test_raw_jpeg_xmp_group_uses_one_name_and_folder(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
