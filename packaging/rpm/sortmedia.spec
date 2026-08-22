@@ -1,5 +1,5 @@
 Name:           sortmedia
-Version:        0.2.0
+Version:        0.2.1
 Release:        1%{?dist}
 Summary:        Sort photos and videos using recording metadata
 License:        MIT
@@ -37,6 +37,9 @@ install -m 644 README.md %{buildroot}%{_docdir}/sortmedia/
 %{_mandir}/man1/sortmedia.1*
 
 %changelog
+* Sat Aug 22 2026 Mikal Furyto <mfuryto@users.noreply.github.com> - 0.2.1-1
+- Make maintenance tools config-free with recursive prompts
+
 * Sat Aug 22 2026 Mikal Furyto <mfuryto@users.noreply.github.com> - 0.2.0-1
 - Add safe recursive filename normalization for existing libraries
 

@@ -30,7 +30,7 @@ are never overwritten.
 
 ```bash
 # Download the .deb from the latest GitHub release, then:
-sudo apt install ./sortmedia_0.2.0-1_all.deb
+sudo apt install ./sortmedia_0.2.1-1_all.deb
 cd /path/to/your/photos
 sortmedia
 ```
@@ -203,16 +203,18 @@ video, paired image, individual size, duration when available, metadata proof,
 and total size. Filename-only matches are explicitly excluded, and the user
 must type `MOVE` before videos are moved to recoverable trash. It works with or
 without a `.sortmedia.toml` config and does not perform any sorting.
+It asks whether subdirectories should be included, with `yes` as the default.
 
 Main-menu option 5 permanently removes files from `.sortmedia/trash` after
 showing file count and total size. It requires typing `DELETE` exactly and
 keeps history files, although runs referencing deleted trash content can no
 longer be undone.
 
-Main-menu option 6 normalizes filenames recursively in an existing library
-without changing its directory structure. It uses the `filename` template in
-the local `.sortmedia.toml` and the same metadata-date fallback chain as a
-normal sort. Recognized date/time prefixes are removed before `{original}` is
+Main-menu option 6 normalizes filenames in an existing library without a config
+file and without changing its directory structure. It asks whether to include
+subdirectories, with `yes` as the default, then uses the built-in standard
+`{date}_{time}_{original}` filename format and the normal metadata-date fallback
+chain. Recognized date/time prefixes are removed before `{original}` is
 rendered, so repeated runs do not create increasingly long names.
 
 For example, with `filename = "{date}_{time}_{original}"`:
@@ -226,6 +228,8 @@ The full recursive plan is previewed first. Folder placement and file bytes do
 not change, RAW/image/video/sidecar companions retain one basename, and any
 collision aborts the plan before the first rename. Applying it requires typing
 `RENAME`; the run is journaled and can be reversed with `sortmedia --undo`.
+Only the internal `.sortmedia/history/` journal is created when renames are
+actually applied; no `.sortmedia.toml` config is created or required.
 
 Set `perceptual_duplicates = true` or pass `--perceptual` to detect visually
 similar images with a difference hash. This is optional and never replaces the
@@ -304,13 +308,13 @@ their native environments on every push and pull request.
 Install the Debian package:
 
 ```bash
-sudo apt install ./dist/sortmedia_0.2.0-1_all.deb
+sudo apt install ./dist/sortmedia_0.2.1-1_all.deb
 ```
 
 The generic archive installs under `/usr/local` when extracted at the root:
 
 ```bash
-sudo tar -xzf dist/sortmedia-0.2.0-linux-any.tar.gz -C /
+sudo tar -xzf dist/sortmedia-0.2.1-linux-any.tar.gz -C /
 ```
 
 ## Cron

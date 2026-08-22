@@ -54,7 +54,7 @@ More documentation: man sortmedia""",
         metavar="FILE",
         help="hidden TOML config; repeat to run multiple jobs in order",
     )
-    result.add_argument("--version", action="version", version="%(prog)s 0.2.0")
+    result.add_argument("--version", action="version", version="%(prog)s 0.2.1")
     result.add_argument(
         "-r", "--run-local",
         action="store_true",
@@ -101,6 +101,13 @@ def _path_prompt(
     if not value or Path(value).expanduser().resolve() == displayed_default:
         return stored_default
     return value
+
+
+def _recursive_maintenance_prompt(input_fn: Callable[[str], str]) -> bool:
+    selection = input_fn("Include subdirectories recursively (yes/no) [yes]: ").strip().lower() or "yes"
+    if selection not in {"yes", "no", "y", "n"}:
+        raise ValueError("Recursive selection must be yes or no")
+    return selection in {"yes", "y"}
 
 
 def _layout_prompt(
@@ -320,7 +327,12 @@ def interactive_menu(
             return 0
         cleanup_choice = (choice == "3" and local_config.exists()) or (choice == "2" and not local_config.exists())
         if cleanup_choice:
-            videos = find_live_photo_videos(current)
+            try:
+                recursive = _recursive_maintenance_prompt(input_fn)
+                videos = find_live_photo_videos(current, recursive=recursive)
+            except (OSError, RuntimeError, ValueError) as error:
+                print(f"Error: {error}", file=sys.stderr)
+                return 1
             if not videos:
                 print("No metadata-confirmed Live Photo short videos found.")
                 return 0
@@ -367,12 +379,16 @@ def interactive_menu(
             print(f"Permanently deleted {deleted} file(s), {format_size(deleted_size)}.")
             return 0
         if choice == "6":
-            if not local_config.exists():
-                print("Create .sortmedia.toml first; its filename template is used.")
-                continue
             try:
+                recursive = _recursive_maintenance_prompt(input_fn)
+                standard_config = JobConfig(
+                    source=current,
+                    destination=current,
+                    filename="{date}_{time}_{original}",
+                    timezone="local",
+                )
                 plans, considered = plan_filename_normalization(
-                    current, load_config(local_config)
+                    current, standard_config, recursive=recursive
                 )
             except (OSError, RuntimeError, ValueError, KeyError) as error:
                 print(f"Error: {error}", file=sys.stderr)
@@ -380,7 +396,9 @@ def interactive_menu(
             if not plans:
                 print(f"All {considered} media and companion file(s) already use the configured filename format.")
                 return 0
-            print(f"\nPreview: {len(plans)} of {considered} file(s) will be renamed recursively.")
+            scope = "recursively" if recursive else "in the current directory"
+            print(f"\nPreview: {len(plans)} of {considered} file(s) will be renamed {scope}.")
+            print("Standard filename format: {date}_{time}_{original}")
             print("Directory placement and file contents will not change.")
             for plan in plans:
                 print(
