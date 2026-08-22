@@ -77,11 +77,14 @@ def _sidecars(media: list[Path]) -> list[Path]:
     return sorted(result)
 
 
-def plan_filename_normalization(root: Path, config: JobConfig) -> tuple[list[RenamePlan], int]:
+def plan_filename_normalization(
+    root: Path, config: JobConfig, recursive: bool = True
+) -> tuple[list[RenamePlan], int]:
     root = root.resolve()
+    iterator = root.rglob("*") if recursive else root.glob("*")
     media = [
         path.resolve()
-        for path in root.rglob("*")
+        for path in iterator
         if path.is_file()
         and path.suffix.lower() in MEDIA_EXTENSIONS
         and ".sortmedia" not in path.relative_to(root).parts

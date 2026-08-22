@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from sortmedia.cli import (
     create_config_interactive,
@@ -75,6 +76,22 @@ class InteractiveConfigTests(unittest.TestCase):
                 os.chdir(original)
 
             self.assertEqual(result, 0)
+
+    def test_filename_normalization_needs_no_config(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            answers = iter(["6", "no"])
+            with patch(
+                "sortmedia.cli.plan_filename_normalization", return_value=([], 0)
+            ) as planner:
+                result = interactive_menu(root, lambda _: next(answers))
+
+            self.assertEqual(result, 0)
+            config = planner.call_args.args[1]
+            self.assertEqual(config.source, root.resolve())
+            self.assertEqual(config.destination, root.resolve())
+            self.assertEqual(config.filename, "{date}_{time}_{original}")
+            self.assertFalse(planner.call_args.kwargs["recursive"])
 
 
 if __name__ == "__main__":

@@ -34,10 +34,13 @@ def _duration(metadata: dict[str, object]) -> str | None:
     return None
 
 
-def find_live_photo_videos(root: Path) -> list[LivePhotoCandidate]:
+def find_live_photo_videos(
+    root: Path, recursive: bool = True
+) -> list[LivePhotoCandidate]:
     root = root.resolve()
     media: list[Path] = []
-    for path in root.rglob("*"):
+    iterator = root.rglob("*") if recursive else root.glob("*")
+    for path in iterator:
         relative = path.relative_to(root)
         if ".sortmedia" in relative.parts or not path.is_file():
             continue

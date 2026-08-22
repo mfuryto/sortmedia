@@ -90,6 +90,22 @@ class FilenameNormalizationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "overwrite"):
                     plan_filename_normalization(root, config)
 
+    def test_non_recursive_normalization_excludes_subdirectories(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / "nested"
+            nested.mkdir()
+            (nested / "2024-06-02_IMG_0042.JPG").write_bytes(b"image")
+            config = JobConfig(source=root, destination=root)
+
+            with patch("sortmedia.normalize.metadata_for_files", return_value={}):
+                plans, considered = plan_filename_normalization(
+                    root, config, recursive=False
+                )
+
+            self.assertEqual(plans, [])
+            self.assertEqual(considered, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

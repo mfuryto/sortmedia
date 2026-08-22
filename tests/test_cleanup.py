@@ -67,6 +67,17 @@ class LivePhotoCleanupTests(unittest.TestCase):
             with patch("sortmedia.cleanup.metadata_for_files", return_value={}):
                 self.assertEqual(find_live_photo_videos(root), [])
 
+    def test_non_recursive_cleanup_excludes_subdirectories(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / "nested"
+            nested.mkdir()
+            (nested / "IMG_1000.HEIC").write_bytes(b"image")
+            (nested / "IMG_1000.MOV").write_bytes(b"video")
+
+            with patch("sortmedia.cleanup.metadata_for_files", return_value={}):
+                self.assertEqual(find_live_photo_videos(root, recursive=False), [])
+
     def test_cleanup_preserves_relative_path_and_is_undoable(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
