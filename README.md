@@ -30,7 +30,7 @@ are never overwritten.
 
 ```bash
 # Download the .deb from the latest GitHub release, then:
-sudo apt install ./sortmedia_0.2.2-1_all.deb
+sudo apt install ./sortmedia_0.2.3-1_all.deb
 cd /path/to/your/photos
 sortmedia
 ```
@@ -198,7 +198,7 @@ workflow.
 
 The main interactive menu also provides a separate cleanup tool for existing
 libraries. It scans all subdirectories and lists only image/video pairs with
-matching Apple `ContentIdentifier` metadata. Before confirmation it shows the
+matching Apple `ContentIdentifier`/`MediaGroupUUID` metadata. Before confirmation it shows the
 video, paired image, individual size, duration when available, metadata proof,
 and total size. Filename-only matches are explicitly excluded, and the user
 must type `MOVE` before videos are moved to recoverable trash. It works with or
@@ -313,13 +313,13 @@ their native environments on every push and pull request.
 Install the Debian package:
 
 ```bash
-sudo apt install ./dist/sortmedia_0.2.2-1_all.deb
+sudo apt install ./dist/sortmedia_0.2.3-1_all.deb
 ```
 
 The generic archive installs under `/usr/local` when extracted at the root:
 
 ```bash
-sudo tar -xzf dist/sortmedia-0.2.2-linux-any.tar.gz -C /
+sudo tar -xzf dist/sortmedia-0.2.3-linux-any.tar.gz -C /
 ```
 
 ## Cron

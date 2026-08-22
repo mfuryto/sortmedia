@@ -4,10 +4,33 @@ import unittest
 from unittest.mock import patch
 
 from sortmedia.cleanup import format_size, find_live_photo_videos, find_live_photo_videos_with_total, purge_trash, trash_live_photo_videos, trash_stats
+from sortmedia.core import content_identifier
 from sortmedia.history import undo_run
 
 
 class LivePhotoCleanupTests(unittest.TestCase):
+    def test_accepts_newer_heic_media_group_uuid(self) -> None:
+        self.assertEqual(
+            content_identifier({"Apple:MediaGroupUUID": "LIVE-ID"}), "LIVE-ID"
+        )
+
+    def test_pairs_heic_media_group_uuid_with_mov_content_identifier(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            image = root / "IMG_1000.HEIC"
+            video = root / "IMG_1000.MOV"
+            image.write_bytes(b"image")
+            video.write_bytes(b"video")
+            metadata = {
+                image.resolve(): {"MediaGroupUUID": "LIVE-ID"},
+                video.resolve(): {"ContentIdentifier": "LIVE-ID"},
+            }
+
+            with patch("sortmedia.cleanup.metadata_for_files", return_value=metadata):
+                candidates = find_live_photo_videos(root)
+
+            self.assertEqual([candidate.video for candidate in candidates], [video.resolve()])
+
     def test_formats_sizes_for_humans(self) -> None:
         self.assertEqual(format_size(42), "42 B")
         self.assertEqual(format_size(1_500_000), "1.5 MB")

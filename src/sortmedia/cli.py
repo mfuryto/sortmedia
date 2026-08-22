@@ -6,33 +6,69 @@ import json
 from pathlib import Path
 import re
 import sys
+import threading
 from typing import Callable
 
 from .config import JobConfig, load_config
-from .cleanup import format_size, find_live_photo_videos_with_total, purge_trash, trash_live_photo_videos, trash_stats
+from .cleanup import format_size, purge_trash, scan_live_photo_videos, trash_live_photo_videos, trash_stats
 from .core import run_job
 from .history import list_runs, undo_run
 from .normalize import apply_filename_normalization, plan_filename_normalization
 from .reporting import ConsoleReporter, JsonReporter, QuietReporter
 
 
-def _maintenance_progress(stage: str, current: int, total: int) -> None:
-    if total:
-        width = 30
-        filled = int(width * current / total)
-        bar = "#" * filled + "-" * (width - filled)
-        percent = int(100 * current / total)
-        message = f"\r{stage:<20} [{bar}] {percent:3d}%  {current}/{total}"
-    else:
-        frames = "|/-\\"
-        frame = frames[(current // 250) % len(frames)]
-        suffix = f" {current} found" if current else " working"
-        message = f"\r{stage:<20} {frame}{suffix}"
-    print(message, end="", file=sys.stderr, flush=True)
+class _MaintenanceProgress:
+    """Continuously animate long scans, then show determinate phase progress."""
 
+    def __init__(self, stage: str = "Determining scope") -> None:
+        self._stage = stage
+        self._current = 0
+        self._total = 0
+        self._frame = 0
+        self._lock = threading.Lock()
+        self._stopped = threading.Event()
+        self._animated = sys.stderr.isatty()
+        self._thread = threading.Thread(target=self._animate, daemon=True)
+        self._render()
+        if self._animated:
+            self._thread.start()
 
-def _finish_maintenance_progress() -> None:
-    print(file=sys.stderr)
+    def _animate(self) -> None:
+        while not self._stopped.wait(0.12):
+            with self._lock:
+                self._frame += 1
+            self._render()
+
+    def _render(self) -> None:
+        with self._lock:
+            stage = self._stage
+            current = self._current
+            total = self._total
+            frame = self._frame
+        if total:
+            width = 30
+            filled = int(width * current / total)
+            bar = "#" * filled + "-" * (width - filled)
+            percent = int(100 * current / total)
+            message = f"\r{stage:<20} [{bar}] {percent:3d}%  {current}/{total}"
+        else:
+            indicator = "|/-\\"[frame % 4]
+            suffix = f" {current} found" if current else " working"
+            message = f"\r{stage:<20} {indicator}{suffix}"
+        print(message, end="", file=sys.stderr, flush=True)
+
+    def update(self, stage: str, current: int, total: int) -> None:
+        with self._lock:
+            self._stage = stage
+            self._current = current
+            self._total = total
+        self._render()
+
+    def finish(self) -> None:
+        self._stopped.set()
+        if self._animated:
+            self._thread.join()
+        print(file=sys.stderr)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -73,7 +109,7 @@ More documentation: man sortmedia""",
         metavar="FILE",
         help="hidden TOML config; repeat to run multiple jobs in order",
     )
-    result.add_argument("--version", action="version", version="%(prog)s 0.2.2")
+    result.add_argument("--version", action="version", version="%(prog)s 0.2.3")
     result.add_argument(
         "-r", "--run-local",
         action="store_true",
@@ -349,18 +385,31 @@ def interactive_menu(
             return 0
         cleanup_choice = (choice == "3" and local_config.exists()) or (choice == "2" and not local_config.exists())
         if cleanup_choice:
+            progress: _MaintenanceProgress | None = None
             try:
                 recursive = _recursive_maintenance_prompt(input_fn)
-                videos, videos_scanned = find_live_photo_videos_with_total(
-                    current, recursive=recursive
+                progress = _MaintenanceProgress()
+                progress.update("Scanning media", 0, 0)
+                scan = scan_live_photo_videos(
+                    current, recursive=recursive, progress=progress.update
                 )
             except (OSError, RuntimeError, ValueError) as error:
+                if progress:
+                    progress.finish()
                 print(f"Error: {error}", file=sys.stderr)
                 return 1
+            progress.finish()
+            videos = scan.candidates
+            videos_scanned = scan.videos_scanned
             if not videos:
                 print(
                     "No metadata-confirmed Live Photo short videos found "
                     f"among {videos_scanned} video(s) scanned."
+                )
+                print(
+                    f"Pairing metadata found in {scan.images_with_identifier} image(s) "
+                    f"and {scan.videos_with_identifier} video(s); confirmed pairs "
+                    "must be in the same directory with an identical Apple identifier."
                 )
                 return 0
             total_size = sum(candidate.size for candidate in videos)
@@ -413,8 +462,10 @@ def interactive_menu(
             print(f"Permanently deleted {deleted} file(s), {format_size(deleted_size)}.")
             return 0
         if choice == "6":
+            progress = None
             try:
                 recursive = _recursive_maintenance_prompt(input_fn)
+                progress = _MaintenanceProgress()
                 standard_config = JobConfig(
                     source=current,
                     destination=current,
@@ -425,12 +476,14 @@ def interactive_menu(
                     current,
                     standard_config,
                     recursive=recursive,
-                    progress=_maintenance_progress,
+                    progress=progress.update,
                 )
-                _finish_maintenance_progress()
             except (OSError, RuntimeError, ValueError, KeyError) as error:
+                if progress:
+                    progress.finish()
                 print(f"Error: {error}", file=sys.stderr)
                 return 1
+            progress.finish()
             if not plans:
                 print(f"All {considered} media and companion file(s) already use the configured filename format.")
                 return 0
@@ -449,14 +502,16 @@ def interactive_menu(
             if confirm != "RENAME":
                 print("No files changed.")
                 return 0
+            progress = _MaintenanceProgress("Preparing renames")
             try:
                 run_id, renamed = apply_filename_normalization(
-                    current, plans, progress=_maintenance_progress
+                    current, plans, progress=progress.update
                 )
-                _finish_maintenance_progress()
             except (OSError, ValueError) as error:
+                progress.finish()
                 print(f"Error: {error}", file=sys.stderr)
                 return 1
+            progress.finish()
             print(f"Renamed {renamed} file(s). Undo run: {run_id}")
             return 0
         print("Invalid selection.")
