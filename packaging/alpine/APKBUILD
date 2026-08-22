@@ -1,5 +1,5 @@
 pkgname=sortmedia
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=0
 pkgdesc="Sort photos and videos using recording metadata"
 url="https://github.com/mfuryto/sortmedia"

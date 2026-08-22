@@ -1,7 +1,7 @@
 # Sortmedia
 
 [![Linux](https://img.shields.io/badge/platform-Linux-2ea44f)](https://github.com/mfuryto/sortmedia)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab)](https://www.python.org/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Package validation](https://github.com/mfuryto/sortmedia/actions/workflows/packages.yml/badge.svg)](https://github.com/mfuryto/sortmedia/actions/workflows/packages.yml)
 
@@ -30,7 +30,7 @@ are never overwritten.
 
 ```bash
 # Download the .deb from the latest GitHub release, then:
-sudo apt install ./dist/sortmedia_0.1.0-1_all.deb
+sudo apt install ./sortmedia_0.1.1-1_all.deb
 cd /path/to/your/photos
 sortmedia
 ```
@@ -86,8 +86,11 @@ deleted without a separate, explicit confirmation.
 
 ## Requirements
 
-- Python 3.11 or newer
+- Python 3.10 or newer
 - ExifTool available as `exiftool`
+
+Python 3.10 systems also need Tomli. The Debian package installs the official
+`python3-tomli` dependency automatically.
 
 ## Run from the repository
 
@@ -278,13 +281,13 @@ their native environments on every push and pull request.
 Install the Debian package:
 
 ```bash
-sudo apt install ./dist/sortmedia_0.1.0-1_all.deb
+sudo apt install ./dist/sortmedia_0.1.1-1_all.deb
 ```
 
 The generic archive installs under `/usr/local` when extracted at the root:
 
 ```bash
-sudo tar -xzf dist/sortmedia-0.1.0-linux-any.tar.gz -C /
+sudo tar -xzf dist/sortmedia-0.1.1-linux-any.tar.gz -C /
 ```
 
 ## Cron

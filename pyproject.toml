@@ -4,9 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sortmedia"
-version = "0.1.0"
+version = "0.1.1"
 description = "Safely organize media with directory-local configs, companion awareness, duplicate detection, and undo"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
+dependencies = [
+    'tomli>=1.2.2; python_version < "3.11"',
+]
 
 [project.scripts]
 sortmedia = "sortmedia.cli:main"

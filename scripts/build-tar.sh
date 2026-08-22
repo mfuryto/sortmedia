@@ -2,7 +2,7 @@
 set -eu
 
 project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-version="0.1.0"
+version="0.1.1"
 stage="$project_dir/build/tar/sortmedia-$version-linux-any"
 output="$project_dir/dist/sortmedia-$version-linux-any.tar.gz"
 
@@ -23,4 +23,3 @@ gzip -n -9 -c "$project_dir/man/sortmedia.1" > "$stage/usr/local/share/man/man1/
 chmod 644 "$stage/usr/local/share/man/man1/sortmedia.1.gz"
 tar -C "$stage" -czf "$output" .
 echo "$output"
-
