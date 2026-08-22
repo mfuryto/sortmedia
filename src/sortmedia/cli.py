@@ -12,6 +12,7 @@ from .config import JobConfig, load_config
 from .cleanup import format_size, find_live_photo_videos, purge_trash, trash_live_photo_videos, trash_stats
 from .core import run_job
 from .history import list_runs, undo_run
+from .normalize import apply_filename_normalization, plan_filename_normalization
 from .reporting import ConsoleReporter, JsonReporter, QuietReporter
 
 
@@ -53,7 +54,7 @@ More documentation: man sortmedia""",
         metavar="FILE",
         help="hidden TOML config; repeat to run multiple jobs in order",
     )
-    result.add_argument("--version", action="version", version="%(prog)s 0.1.2")
+    result.add_argument("--version", action="version", version="%(prog)s 0.2.0")
     result.add_argument(
         "-r", "--run-local",
         action="store_true",
@@ -287,6 +288,7 @@ def interactive_menu(
             print("1) Create .sortmedia.toml in this directory")
             print("2) Clean up existing Live Photo short videos")
         print("5) Permanently clean up .sortmedia/trash")
+        print("6) Normalize filenames recursively in this library")
         print("q) Quit")
         choice = input_fn("Select an option: ").strip().lower()
 
@@ -363,6 +365,40 @@ def interactive_menu(
                 print(f"Error: {error}", file=sys.stderr)
                 return 1
             print(f"Permanently deleted {deleted} file(s), {format_size(deleted_size)}.")
+            return 0
+        if choice == "6":
+            if not local_config.exists():
+                print("Create .sortmedia.toml first; its filename template is used.")
+                continue
+            try:
+                plans, considered = plan_filename_normalization(
+                    current, load_config(local_config)
+                )
+            except (OSError, RuntimeError, ValueError, KeyError) as error:
+                print(f"Error: {error}", file=sys.stderr)
+                return 1
+            if not plans:
+                print(f"All {considered} media and companion file(s) already use the configured filename format.")
+                return 0
+            print(f"\nPreview: {len(plans)} of {considered} file(s) will be renamed recursively.")
+            print("Directory placement and file contents will not change.")
+            for plan in plans:
+                print(
+                    f"  {plan.source.relative_to(current)} -> "
+                    f"{plan.destination.name} [{plan.date_source}]"
+                )
+            print("\nExisting date/time prefixes are removed before {original} is rendered.")
+            print("Collisions and overwrites are rejected before any rename starts.")
+            confirm = input_fn("Type RENAME to apply this preview: ").strip()
+            if confirm != "RENAME":
+                print("No files changed.")
+                return 0
+            try:
+                run_id, renamed = apply_filename_normalization(current, plans)
+            except (OSError, ValueError) as error:
+                print(f"Error: {error}", file=sys.stderr)
+                return 1
+            print(f"Renamed {renamed} file(s). Undo run: {run_id}")
             return 0
         print("Invalid selection.")
 

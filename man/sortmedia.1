@@ -1,4 +1,4 @@
-.TH SORTMEDIA 1 "August 2026" "sortmedia 0.1.2" "User Commands"
+.TH SORTMEDIA 1 "August 2026" "sortmedia 0.2.0" "User Commands"
 .SH NAME
 sortmedia \- sort photos and videos by recording date
 .SH SYNOPSIS
@@ -45,6 +45,13 @@ only image/video pairs with matching Apple ContentIdentifier metadata, shows
 the paired image, video size, duration, and identifier, and excludes matches
 based only on filenames. Typing MOVE sends the confirmed video companions to
 recoverable .sortmedia/trash without sorting any files.
+.PP
+Main-menu option 6 recursively normalizes filenames in an existing library
+using the local config's filename template without moving files between
+directories. Recognized date and time prefixes are removed before the
+original-name field is rendered, preventing names from growing on repeated
+runs. The complete rename plan is shown first, collisions abort the entire
+plan, and typing RENAME is required. Completed renames are recorded for undo.
 .PP
 Exact duplicate detection uses SHA-256 across filenames. Optional perceptual
 matching combines structural, luminance, and color fingerprints. Dangerous

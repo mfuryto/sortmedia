@@ -2,7 +2,7 @@
 set -eu
 
 project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-version="0.1.2-1"
+version="0.2.0-1"
 package_name="sortmedia_${version}_all"
 build_root="$project_dir/build/deb/$package_name"
 output_dir="$project_dir/dist"
@@ -26,6 +26,7 @@ install -m 644 "$project_dir/src/sortmedia/core.py" "$build_root/usr/lib/sortmed
 install -m 644 "$project_dir/src/sortmedia/history.py" "$build_root/usr/lib/sortmedia/src/sortmedia/history.py"
 install -m 644 "$project_dir/src/sortmedia/reporting.py" "$build_root/usr/lib/sortmedia/src/sortmedia/reporting.py"
 install -m 644 "$project_dir/src/sortmedia/cleanup.py" "$build_root/usr/lib/sortmedia/src/sortmedia/cleanup.py"
+install -m 644 "$project_dir/src/sortmedia/normalize.py" "$build_root/usr/lib/sortmedia/src/sortmedia/normalize.py"
 install -m 644 "$project_dir/README.md" "$build_root/usr/share/doc/sortmedia/README.md"
 install -m 644 "$project_dir/packaging/debian/copyright" "$build_root/usr/share/doc/sortmedia/copyright"
 
