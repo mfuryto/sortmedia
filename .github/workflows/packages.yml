@@ -50,7 +50,9 @@ jobs:
     container: alpine:latest
     steps:
       - uses: actions/checkout@v4
-      - run: apk add alpine-sdk doas python3 py3-pillow exiftool
+      - run: apk add alpine-sdk python3 py3-pillow exiftool
       - run: adduser -D builder && addgroup builder abuild && chown -R builder:abuild .
       - run: tar --transform='s,^,sortmedia-0.1.0/,' -czf /var/cache/distfiles/sortmedia-0.1.0.tar.gz LICENSE README.md bin src man
-      - run: su builder -c 'abuild-keygen -a -i -n && cd packaging/alpine && abuild -r'
+      - run: su builder -c 'abuild-keygen -a -n'
+      - run: cp /home/builder/.abuild/*.rsa.pub /etc/apk/keys/
+      - run: su builder -c 'cd packaging/alpine && abuild -r'
