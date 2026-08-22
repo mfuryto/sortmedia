@@ -27,7 +27,7 @@ install -m 755 bin/sortmedia %{buildroot}%{_libdir}/sortmedia/bin/sortmedia
 install -m 644 src/sortmedia/*.py %{buildroot}%{_libdir}/sortmedia/src/sortmedia/
 ln -s ../%{_lib}/sortmedia/bin/sortmedia %{buildroot}%{_bindir}/sortmedia
 install -m 644 man/sortmedia.1 %{buildroot}%{_mandir}/man1/sortmedia.1
-install -m 644 README.md LICENSE %{buildroot}%{_docdir}/sortmedia/
+install -m 644 README.md %{buildroot}%{_docdir}/sortmedia/
 
 %files
 %license LICENSE
