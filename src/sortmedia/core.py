@@ -52,6 +52,35 @@ class PlannedFile:
     date_source: str
 
 
+def content_identifier(metadata: dict[str, object]) -> str | None:
+    """Return Apple's Live Photo pairing identifier from ExifTool metadata."""
+    for key, value in metadata.items():
+        if key.rsplit(":", 1)[-1] != "ContentIdentifier":
+            continue
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def confirmed_live_photo_videos(
+    paths: list[Path],
+    metadata: dict[Path, dict[str, object]],
+) -> set[Path]:
+    """Return only videos whose Apple pairing ID matches an image in the group."""
+    image_ids = {
+        identifier
+        for path in paths
+        if path.suffix.lower() in IMAGE_EXTENSIONS
+        if (identifier := content_identifier(metadata.get(path.resolve(), {})))
+    }
+    return {
+        path
+        for path in paths
+        if path.suffix.lower() in VIDEO_EXTENSIONS
+        and content_identifier(metadata.get(path.resolve(), {})) in image_ids
+    }
+
+
 def _group_priority(path: Path) -> tuple[int, str]:
     # Prefer an image as the date and naming source for RAW+JPEG and Live Photo
     # groups. The remaining files inherit the same date and base filename.
@@ -402,11 +431,7 @@ def run_job(
         total_groups = len(groups)
         for group_number, paths in enumerate(groups.values(), start=1):
             reporter.progress(group_number, total_groups)
-            has_image = any(path.suffix.lower() in IMAGE_EXTENSIONS for path in paths)
-            live_videos = [
-                path for path in paths
-                if has_image and path.suffix.lower() in VIDEO_EXTENSIONS
-            ]
+            live_videos = confirmed_live_photo_videos(paths, metadata_cache)
             planned_paths = (
                 [path for path in paths if path not in live_videos]
                 if config.live_photo_videos in {"leave", "trash"}
