@@ -1,0 +1,8 @@
+# The repository owner reviews changes to all project files.
+* @mfuryto
+
+# Changes to automation, packaging, and security policy require owner review.
+/.github/ @mfuryto
+/packaging/ @mfuryto
+/scripts/ @mfuryto
+/SECURITY.md @mfuryto
