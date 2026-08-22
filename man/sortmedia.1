@@ -182,6 +182,22 @@ renames filename collisions whose content differs;
 adds a numeric suffix on collision;
 .B skip
 skips the file.
+.SH PLEX LIBRARIES
+When a Sortmedia working directory is inside a Plex library, add a file named
+.I .plexignore
+to the Plex content root containing:
+.PP
+.nf
+.sortmedia/*
+.fi
+.PP
+This rule excludes only the Sortmedia state directory, including recoverable
+trash and history. Other directories under the Plex content root continue to
+be scanned normally. Existing rules in
+.I .plexignore
+must be preserved. Plex's Empty Trash command removes stale Plex database
+entries and does not purge files from Sortmedia's
+.IR .sortmedia/trash .
 .SH EXAMPLES
 .nf
 cd /media/import && sortmedia -r
