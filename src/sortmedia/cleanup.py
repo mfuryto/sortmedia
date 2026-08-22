@@ -37,6 +37,14 @@ def _duration(metadata: dict[str, object]) -> str | None:
 def find_live_photo_videos(
     root: Path, recursive: bool = True
 ) -> list[LivePhotoCandidate]:
+    matches, _ = find_live_photo_videos_with_total(root, recursive)
+    return matches
+
+
+def find_live_photo_videos_with_total(
+    root: Path, recursive: bool = True
+) -> tuple[list[LivePhotoCandidate], int]:
+    """Return confirmed Live Photo clips and the number of videos inspected."""
     root = root.resolve()
     media: list[Path] = []
     iterator = root.rglob("*") if recursive else root.glob("*")
@@ -74,7 +82,8 @@ def find_live_photo_videos(
                 content_identifier=identifier,
             )
         )
-    return sorted(matches, key=lambda candidate: candidate.video)
+    video_count = sum(path.suffix.lower() in VIDEO_EXTENSIONS for path in media)
+    return sorted(matches, key=lambda candidate: candidate.video), video_count
 
 
 def trash_live_photo_videos(root: Path, videos: list[Path]) -> tuple[str, int]:

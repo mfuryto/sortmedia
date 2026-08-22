@@ -9,11 +9,30 @@ import sys
 from typing import Callable
 
 from .config import JobConfig, load_config
-from .cleanup import format_size, find_live_photo_videos, purge_trash, trash_live_photo_videos, trash_stats
+from .cleanup import format_size, find_live_photo_videos_with_total, purge_trash, trash_live_photo_videos, trash_stats
 from .core import run_job
 from .history import list_runs, undo_run
 from .normalize import apply_filename_normalization, plan_filename_normalization
 from .reporting import ConsoleReporter, JsonReporter, QuietReporter
+
+
+def _maintenance_progress(stage: str, current: int, total: int) -> None:
+    if total:
+        width = 30
+        filled = int(width * current / total)
+        bar = "#" * filled + "-" * (width - filled)
+        percent = int(100 * current / total)
+        message = f"\r{stage:<20} [{bar}] {percent:3d}%  {current}/{total}"
+    else:
+        frames = "|/-\\"
+        frame = frames[(current // 250) % len(frames)]
+        suffix = f" {current} found" if current else " working"
+        message = f"\r{stage:<20} {frame}{suffix}"
+    print(message, end="", file=sys.stderr, flush=True)
+
+
+def _finish_maintenance_progress() -> None:
+    print(file=sys.stderr)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -54,7 +73,7 @@ More documentation: man sortmedia""",
         metavar="FILE",
         help="hidden TOML config; repeat to run multiple jobs in order",
     )
-    result.add_argument("--version", action="version", version="%(prog)s 0.2.1")
+    result.add_argument("--version", action="version", version="%(prog)s 0.2.2")
     result.add_argument(
         "-r", "--run-local",
         action="store_true",
@@ -311,8 +330,11 @@ def interactive_menu(
             return 0
         if choice == "1" and local_config.exists():
             try:
-                processed, skipped = run_job(load_config(local_config), current / ".sortmedia")
-                print(f"Done: {processed} processed, {skipped} skipped")
+                config = load_config(local_config)
+                processed, skipped = run_job(config, current / ".sortmedia")
+                total = processed + skipped
+                verb = "would be affected" if config.operation == "preview" else "were affected"
+                print(f"Done: {processed} of {total} file(s) {verb}; {skipped} unchanged/skipped.")
                 return 0
             except (OSError, RuntimeError, ValueError, KeyError) as error:
                 print(f"Error: {error}", file=sys.stderr)
@@ -329,15 +351,24 @@ def interactive_menu(
         if cleanup_choice:
             try:
                 recursive = _recursive_maintenance_prompt(input_fn)
-                videos = find_live_photo_videos(current, recursive=recursive)
+                videos, videos_scanned = find_live_photo_videos_with_total(
+                    current, recursive=recursive
+                )
             except (OSError, RuntimeError, ValueError) as error:
                 print(f"Error: {error}", file=sys.stderr)
                 return 1
             if not videos:
-                print("No metadata-confirmed Live Photo short videos found.")
+                print(
+                    "No metadata-confirmed Live Photo short videos found "
+                    f"among {videos_scanned} video(s) scanned."
+                )
                 return 0
             total_size = sum(candidate.size for candidate in videos)
-            print(f"\nFound {len(videos)} metadata-confirmed Live Photo video(s), {format_size(total_size)} total:")
+            print(
+                f"\nPreview: {len(videos)} of {videos_scanned} scanned video(s) "
+                "will be moved to trash "
+                f"({format_size(total_size)} total):"
+            )
             for candidate in videos:
                 duration = f", {candidate.duration}" if candidate.duration else ""
                 print(f"\n  Video: {candidate.video.relative_to(current)} ({format_size(candidate.size)}{duration})")
@@ -355,7 +386,10 @@ def interactive_menu(
             except (OSError, ValueError) as error:
                 print(f"Error: {error}", file=sys.stderr)
                 return 1
-            print(f"Moved {moved} video(s) to trash. Undo run: {run_id}")
+            print(
+                f"Moved {moved} of {videos_scanned} scanned video(s) to trash. "
+                f"Undo run: {run_id}"
+            )
             return 0
         if choice == "4" and local_config.exists():
             print(local_config)
@@ -388,8 +422,12 @@ def interactive_menu(
                     timezone="local",
                 )
                 plans, considered = plan_filename_normalization(
-                    current, standard_config, recursive=recursive
+                    current,
+                    standard_config,
+                    recursive=recursive,
+                    progress=_maintenance_progress,
                 )
+                _finish_maintenance_progress()
             except (OSError, RuntimeError, ValueError, KeyError) as error:
                 print(f"Error: {error}", file=sys.stderr)
                 return 1
@@ -412,7 +450,10 @@ def interactive_menu(
                 print("No files changed.")
                 return 0
             try:
-                run_id, renamed = apply_filename_normalization(current, plans)
+                run_id, renamed = apply_filename_normalization(
+                    current, plans, progress=_maintenance_progress
+                )
+                _finish_maintenance_progress()
             except (OSError, ValueError) as error:
                 print(f"Error: {error}", file=sys.stderr)
                 return 1
@@ -504,9 +545,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Error: {error}", file=sys.stderr)
         return 1
     if args.json:
-        reporter.event("summary", processed=total, skipped=skipped)
+        reporter.event(
+            "summary",
+            affected=total,
+            total=total + skipped,
+            processed=total,
+            skipped=skipped,
+        )
     elif not args.quiet:
-        print(f"Done: {total} processed, {skipped} skipped")
+        considered = total + skipped
+        operations = {config.operation for _, config in jobs}
+        verb = "would be affected" if operations == {"preview"} else "were affected"
+        print(f"Done: {total} of {considered} file(s) {verb}; {skipped} unchanged/skipped.")
     return 0
 
 

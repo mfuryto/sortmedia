@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 import re
 import shutil
+from typing import Callable
 import uuid
 
 from .config import JobConfig
@@ -78,25 +79,43 @@ def _sidecars(media: list[Path]) -> list[Path]:
 
 
 def plan_filename_normalization(
-    root: Path, config: JobConfig, recursive: bool = True
+    root: Path,
+    config: JobConfig,
+    recursive: bool = True,
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> tuple[list[RenamePlan], int]:
     root = root.resolve()
+    if progress:
+        progress("Scanning files", 0, 0)
     iterator = root.rglob("*") if recursive else root.glob("*")
-    media = [
-        path.resolve()
-        for path in iterator
-        if path.is_file()
-        and path.suffix.lower() in MEDIA_EXTENSIONS
-        and ".sortmedia" not in path.relative_to(root).parts
-    ]
-    metadata = metadata_for_files(media)
+    media: list[Path] = []
+    for path in iterator:
+        if (
+            path.is_file()
+            and path.suffix.lower() in MEDIA_EXTENSIONS
+            and ".sortmedia" not in path.relative_to(root).parts
+        ):
+            media.append(path.resolve())
+            if progress and len(media) % 250 == 0:
+                progress("Scanning files", len(media), 0)
+    if progress:
+        progress("Scanning files", len(media), len(media))
+    metadata: dict[Path, dict[str, object]] = {}
+    batch_size = 250
+    if not media and progress:
+        progress("Reading metadata", 0, 0)
+    for offset in range(0, len(media), batch_size):
+        batch = media[offset : offset + batch_size]
+        metadata.update(metadata_for_files(batch))
+        if progress:
+            progress("Reading metadata", min(offset + len(batch), len(media)), len(media))
     groups: dict[tuple[Path, str], list[Path]] = {}
     for path in media:
         groups.setdefault((path.parent, path.stem.casefold()), []).append(path)
 
     plans: list[RenamePlan] = []
     considered: set[Path] = set()
-    for paths in groups.values():
+    for group_number, paths in enumerate(groups.values(), start=1):
         primary = min(
             paths,
             key=lambda path: (0 if path.suffix.lower() in IMAGE_EXTENSIONS else 1, path.name.lower()),
@@ -113,6 +132,8 @@ def plan_filename_normalization(
             destination = source.with_name(target_base + source.suffix.lower())
             if destination != source:
                 plans.append(RenamePlan(source, destination, date_source))
+        if progress:
+            progress("Planning renames", group_number, len(groups))
 
     sources = {plan.source for plan in plans}
     destinations: set[Path] = set()
@@ -126,24 +147,31 @@ def plan_filename_normalization(
 
 
 def apply_filename_normalization(
-    root: Path, plans: list[RenamePlan]
+    root: Path,
+    plans: list[RenamePlan],
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> tuple[str, int]:
     root = root.resolve()
     journal = RunJournal(root / ".sortmedia", "filename-normalize")
     staged: list[tuple[RenamePlan, Path, str]] = []
     completed: list[tuple[RenamePlan, str]] = []
     try:
-        for plan in plans:
+        total_steps = len(plans) * 2
+        for number, plan in enumerate(plans, start=1):
             temporary = plan.source.with_name(
                 f".sortmedia-rename-{uuid.uuid4().hex}{plan.source.suffix}"
             )
             digest = file_sha256(plan.source)
             shutil.move(plan.source, temporary)
             staged.append((plan, temporary, digest))
-        for plan, temporary, digest in staged:
+            if progress:
+                progress("Preparing renames", number, total_steps)
+        for number, (plan, temporary, digest) in enumerate(staged, start=1):
             shutil.move(temporary, plan.destination)
             completed.append((plan, digest))
             journal.add("move", plan.source, plan.destination, digest)
+            if progress:
+                progress("Renaming files", len(plans) + number, total_steps)
         journal.finish()
     except Exception:
         for plan, digest in reversed(completed):

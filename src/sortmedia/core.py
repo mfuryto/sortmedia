@@ -411,7 +411,18 @@ def run_job(
     reporter = reporter or ConsoleReporter()
     groups: dict[tuple[Path, str], list[Path]] = {}
     sources = list(media_files(config))
-    metadata_cache = metadata_for_files(sources)
+    metadata_cache: dict[Path, dict[str, object]] = {}
+    metadata_batch_size = 250
+    if not sources:
+        reporter.stage_progress("Reading metadata", 0, 0)
+    for offset in range(0, len(sources), metadata_batch_size):
+        batch = sources[offset : offset + metadata_batch_size]
+        metadata_cache.update(metadata_for_files(batch))
+        reporter.stage_progress(
+            "Reading metadata",
+            min(offset + len(batch), len(sources)),
+            len(sources),
+        )
     for source in sources:
         groups.setdefault((source.parent, source.stem.casefold()), []).append(source)
     input_paths = sources + [

@@ -2,7 +2,7 @@
 set -eu
 
 project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-version="0.2.1-1"
+version="0.2.2-1"
 package_name="sortmedia_${version}_all"
 build_root="$project_dir/build/deb/$package_name"
 output_dir="$project_dir/dist"
