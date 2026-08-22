@@ -1,0 +1,13 @@
+# Relative paths are resolved from the directory containing this config file.
+folder = "incoming"
+destination = "."
+recursive = false
+
+# preview, move, or copy. Always start with preview.
+operation = "preview"
+layout = "{year}/{month}/{day}"
+filename = "{date}_{time}_{original}"
+duplicates = "hash"
+timezone = "local"
+perceptual_duplicates = false
+live_photo_videos = "include"

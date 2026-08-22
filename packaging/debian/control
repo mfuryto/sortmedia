@@ -1,0 +1,13 @@
+Package: sortmedia
+Version: 0.1.0-1
+Section: utils
+Priority: optional
+Architecture: all
+Maintainer: Mikal Furyto <mfuryto@users.noreply.github.com>
+Depends: python3 (>= 3.11), python3-pil, libimage-exiftool-perl
+Description: Sort photos and videos using recording metadata
+ Sortmedia reads recording dates from EXIF and video metadata and sorts media
+ into directory-local configurable structures. It preserves embedded metadata,
+ keeps RAW, sidecar, and Live Photo companions together, detects exact and
+ visual duplicates, and records operations for hash-verified undo. Jobs use
+ hidden TOML files and are safely previewed before files are copied or moved.

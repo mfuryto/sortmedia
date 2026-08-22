@@ -1,0 +1,41 @@
+name: Bug report
+description: Report behavior that is incorrect, unsafe, or unexpected
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please remove private filenames, paths, and metadata before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: Sortmedia version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Linux distribution, Python version, and ExifTool version
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include the expected result and a minimal way to reproduce it.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Sanitized output
+      render: shell
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed private media, paths, and metadata from this report.
+          required: true

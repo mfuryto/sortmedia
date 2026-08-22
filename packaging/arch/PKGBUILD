@@ -1,0 +1,22 @@
+pkgname=sortmedia
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Sort photos and videos using recording metadata'
+arch=('any')
+url='https://github.com/mfuryto/sortmedia'
+license=('MIT')
+depends=('python>=3.11' 'python-pillow' 'perl-image-exiftool')
+source=("sortmedia-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+  cd "$srcdir/sortmedia-$pkgver"
+  install -d "$pkgdir/usr/bin" "$pkgdir/usr/lib/sortmedia/bin"
+  install -d "$pkgdir/usr/lib/sortmedia/src/sortmedia"
+  install -Dm755 bin/sortmedia "$pkgdir/usr/lib/sortmedia/bin/sortmedia"
+  install -Dm644 src/sortmedia/*.py "$pkgdir/usr/lib/sortmedia/src/sortmedia/"
+  ln -s ../lib/sortmedia/bin/sortmedia "$pkgdir/usr/bin/sortmedia"
+  install -Dm644 man/sortmedia.1 "$pkgdir/usr/share/man/man1/sortmedia.1"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/sortmedia/LICENSE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/sortmedia/README.md"
+}

@@ -1,0 +1,198 @@
+.TH SORTMEDIA 1 "August 2026" "sortmedia 0.1.0" "User Commands"
+.SH NAME
+sortmedia \- sort photos and videos by recording date
+.SH SYNOPSIS
+.B sortmedia
+.PP
+.B sortmedia
+.B \-r
+.PP
+.B sortmedia
+.BR \-c " " FILE
+.RB [ \-c " " FILE ]...
+.PP
+.B sortmedia
+.BR \-h | \-\-help | \-\-version
+.SH DESCRIPTION
+.B sortmedia
+reads recording dates from EXIF and video metadata and organizes media files
+in configurable directory structures. ExifTool is used for metadata. If no
+recording date exists, the filesystem creation time and then modification time
+are used.
+.PP
+Sortmedia uses directory-local hidden TOML configuration, preserves embedded
+metadata without re-encoding files, records completed operations for
+hash-verified undo, and supports scripts through quiet and JSON output modes.
+All analysis and file operations remain local to the machine.
+.PP
+Files sharing a base name are handled as a companion group. RAW+JPEG pairs,
+Live Photo image+video pairs, and XMP, AAE, or THM sidecars are copied or moved
+together without rewriting their contents or embedded metadata.
+.PP
+Each config file defines one independent job. Relative paths are resolved from
+the config file's directory. Multiple config files run in command-line order.
+.PP
+When started without arguments in an interactive terminal, sortmedia opens a
+menu for the current working directory. The menu can create a local
+.I .sortmedia.toml
+or run an existing one. It can also update the operation and directory layout
+in the same config file while preserving all other settings and comments.
+Non-interactive use requires
+.BR \-\-config .
+.PP
+The main menu also contains an independent Live Photo cleanup tool. It scans
+existing subdirectories for same-named image/video pairs, previews all matches,
+and moves confirmed video companions to recoverable .sortmedia/trash without
+sorting any files.
+.PP
+Exact duplicate detection uses SHA-256 across filenames. Optional perceptual
+matching combines structural, luminance, and color fingerprints. Dangerous
+absolute or parent-traversing output templates are rejected, and existing
+files are never overwritten.
+.SH OPTIONS
+.TP
+.BR \-r , " " \-\-run-local
+Run
+.I .sortmedia.toml
+from the current working directory without opening the interactive menu.
+.TP
+.BR \-c " " FILE , " " \-\-config " " FILE
+Read a job from FILE. FILE must be a hidden TOML file such as
+.IR .sortmedia.toml .
+This option may be repeated.
+.TP
+.BR \-f " " DIRECTORY , " " \-\-folder " " DIRECTORY
+Override the source directory, or run without a config file using command-line
+defaults.
+.TP
+.BR \-d " " DIRECTORY , " " \-\-destination " " DIRECTORY
+Override the destination directory.
+.TP
+.BR \-R , " " \-\-recursive
+Scan source subdirectories.
+.TP
+.B \-\-no-recursive
+Do not scan source subdirectories.
+.TP
+.BR \-\-preview , " " \-\-copy , " " \-\-move
+Override the operation for the current run.
+.TP
+.BR \-\-layout " " TEMPLATE
+Override the directory layout.
+.TP
+.BR \-\-filename " " TEMPLATE
+Override the filename template.
+.TP
+.BR \-\-duplicates " " hash|rename|skip
+Override duplicate handling.
+.TP
+.B \-\-perceptual
+Detect visually similar images using a difference hash in addition to exact
+SHA-256 duplicate detection.
+.TP
+.BR \-q , " " \-\-quiet
+Suppress normal output.
+.TP
+.B \-\-json
+Emit newline-delimited JSON events for automation.
+.TP
+.BR \-\-max-depth " " N
+Limit recursive scanning to N directory levels. Zero scans only the source.
+.TP
+.B \-\-history
+List structured run journals stored under .sortmedia/history.
+.TP
+.BR \-\-undo " " [RUN_ID]
+Undo the latest completed run, or the selected run. Destination content is
+verified with SHA-256 before it is removed or moved back.
+.TP
+.BR \-h , " " \-\-help
+Show built-in help and exit.
+.TP
+.B \-\-version
+Show the program version and exit.
+.SH CONFIGURATION
+.nf
+folder = "incoming"
+destination = "."
+recursive = false
+operation = "preview"
+layout = "{year}/{month}/{day}"
+filename = "{date}_{time}_{original}"
+duplicates = "hash"
+timezone = "local"
+.fi
+.TP
+.B folder
+Source directory. The config directory is used when omitted.
+.TP
+.B destination
+Destination directory for the sorted structure.
+.TP
+.B recursive
+Whether to scan source subdirectories.
+.TP
+.B operation
+.BR preview , " " copy , " or " move .
+The default is
+.BR preview .
+.TP
+.B layout
+Directory template. Available fields include year, month, day, date, time,
+original, and extension.
+.PP
+The interactive create and update menus describe common choices as
+.BR {year} ,
+.BR {year}/{month} ,
+and
+.BR {year}/{month}/{day} ,
+with example output for each choice.
+.TP
+.B filename
+Filename template. The original extension is preserved.
+.TP
+.B timezone
+Output timezone: local, UTC, or an IANA name such as Europe/Oslo.
+.TP
+.B live_photo_videos
+Controls same-named Live Photo video companions: include sorts the video with
+the image, leave keeps it in the source, and trash moves it to recoverable
+.IR .sortmedia/trash .
+.TP
+.B duplicates
+.B hash
+compares SHA-256 content, skips identical files even when names differ, and
+renames filename collisions whose content differs;
+.B rename
+adds a numeric suffix on collision;
+.B skip
+skips the file.
+.SH EXAMPLES
+.nf
+cd /media/import && sortmedia -r
+sortmedia -r --move --recursive
+sortmedia -f /media/camera -d /photos --copy
+sortmedia -c /media/import/.sortmedia.toml
+sortmedia -c ~/photos/.sortmedia.toml -c /media/camera/.import.toml
+.fi
+.SH SAFETY
+Use
+.B operation = "preview"
+before copy or move. Existing files are never overwritten. System-wide
+installation does not bypass Linux permissions on source or destination files.
+.SH EXIT STATUS
+.B 0
+indicates success.
+.B 1
+indicates a configuration, filesystem, or program error.
+.SH DEPENDENCIES
+Python 3.11 or newer and ExifTool.
+.SH FILES
+.I /usr/bin/sortmedia
+.br
+.I /usr/lib/sortmedia
+.br
+.I /usr/share/man/man1/sortmedia.1.gz
+.SH SEE ALSO
+.BR exiftool (1),
+.BR crontab (5)
