@@ -30,7 +30,7 @@ are never overwritten.
 
 ```bash
 # Download the .deb from the latest GitHub release, then:
-sudo apt install ./sortmedia_0.2.1-1_all.deb
+sudo apt install ./sortmedia_0.2.2-1_all.deb
 cd /path/to/your/photos
 sortmedia
 ```
@@ -231,6 +231,11 @@ collision aborts the plan before the first rename. Applying it requires typing
 Only the internal `.sortmedia/history/` journal is created when renames are
 actually applied; no `.sortmedia.toml` config is created or required.
 
+Long maintenance jobs show a moving progress line for discovery, metadata
+reading, planning, and applying changes. Preview and completion summaries show
+the affected file count out of the total inspected. Live Photo cleanup likewise
+reports confirmed companions out of every video scanned.
+
 Set `perceptual_duplicates = true` or pass `--perceptual` to detect visually
 similar images with a difference hash. This is optional and never replaces the
 exact SHA-256 check.
@@ -308,13 +313,13 @@ their native environments on every push and pull request.
 Install the Debian package:
 
 ```bash
-sudo apt install ./dist/sortmedia_0.2.1-1_all.deb
+sudo apt install ./dist/sortmedia_0.2.2-1_all.deb
 ```
 
 The generic archive installs under `/usr/local` when extracted at the root:
 
 ```bash
-sudo tar -xzf dist/sortmedia-0.2.1-linux-any.tar.gz -C /
+sudo tar -xzf dist/sortmedia-0.2.2-linux-any.tar.gz -C /
 ```
 
 ## Cron

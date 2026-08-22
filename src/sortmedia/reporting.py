@@ -5,6 +5,9 @@ import sys
 
 
 class Reporter:
+    def stage_progress(self, stage: str, current: int, total: int) -> None:
+        pass
+
     def progress(self, current: int, total: int) -> None:
         pass
 
@@ -20,6 +23,9 @@ class QuietReporter(Reporter):
 
 
 class JsonReporter(Reporter):
+    def stage_progress(self, stage: str, current: int, total: int) -> None:
+        self.event("progress", stage=stage, current=current, total=total)
+
     def progress(self, current: int, total: int) -> None:
         self.event("progress", current=current, total=total)
 
@@ -31,12 +37,21 @@ class ConsoleReporter(Reporter):
     def __init__(self) -> None:
         self._progress_active = False
 
-    def progress(self, current: int, total: int) -> None:
+    def stage_progress(self, stage: str, current: int, total: int) -> None:
         width = 30
         filled = width if total == 0 else int(width * current / total)
         bar = "#" * filled + "-" * (width - filled)
-        print(f"\r[{bar}] {current}/{total}", end="", file=sys.stderr, flush=True)
+        percent = 100 if total == 0 else int(100 * current / total)
+        print(
+            f"\r{stage:<18} [{bar}] {percent:3d}%  {current}/{total}",
+            end="",
+            file=sys.stderr,
+            flush=True,
+        )
         self._progress_active = True
+
+    def progress(self, current: int, total: int) -> None:
+        self.stage_progress("Sorting files", current, total)
 
     def event(self, kind: str, **values: object) -> None:
         if self._progress_active:

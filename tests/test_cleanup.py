@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from sortmedia.cleanup import format_size, find_live_photo_videos, purge_trash, trash_live_photo_videos, trash_stats
+from sortmedia.cleanup import format_size, find_live_photo_videos, find_live_photo_videos_with_total, purge_trash, trash_live_photo_videos, trash_stats
 from sortmedia.history import undo_run
 
 
@@ -55,6 +55,27 @@ class LivePhotoCleanupTests(unittest.TestCase):
             self.assertEqual(candidates[0].size, 4)
             self.assertEqual(candidates[0].duration, "2.8 s")
             self.assertEqual(candidates[0].content_identifier, "LIVE-ID")
+
+    def test_reports_matches_out_of_all_videos_scanned(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            image = root / "IMG_1000.HEIC"
+            paired = root / "IMG_1000.MOV"
+            unrelated = root / "holiday.MP4"
+            image.write_bytes(b"image")
+            paired.write_bytes(b"live")
+            unrelated.write_bytes(b"video")
+            metadata = {
+                image.resolve(): {"ContentIdentifier": "LIVE-ID"},
+                paired.resolve(): {"ContentIdentifier": "LIVE-ID"},
+                unrelated.resolve(): {},
+            }
+
+            with patch("sortmedia.cleanup.metadata_for_files", return_value=metadata):
+                candidates, total = find_live_photo_videos_with_total(root)
+
+            self.assertEqual(len(candidates), 1)
+            self.assertEqual(total, 2)
 
     def test_same_filename_without_matching_metadata_is_excluded(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
