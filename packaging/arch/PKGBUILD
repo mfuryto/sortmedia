@@ -1,5 +1,5 @@
 pkgname=sortmedia
-pkgver=0.1.2
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='Sort photos and videos using recording metadata'
 arch=('any')

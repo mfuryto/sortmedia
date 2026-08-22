@@ -16,6 +16,7 @@ install -m 644 src/sortmedia/core.py "$library_dir/src/sortmedia/core.py"
 install -m 644 src/sortmedia/history.py "$library_dir/src/sortmedia/history.py"
 install -m 644 src/sortmedia/reporting.py "$library_dir/src/sortmedia/reporting.py"
 install -m 644 src/sortmedia/cleanup.py "$library_dir/src/sortmedia/cleanup.py"
+install -m 644 src/sortmedia/normalize.py "$library_dir/src/sortmedia/normalize.py"
 install -m 644 man/sortmedia.1 "$man_dir/sortmedia.1"
 ln -sfn "$library_dir/bin/sortmedia" "$command_path"
 

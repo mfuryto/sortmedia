@@ -10,7 +10,7 @@ project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 topdir="$project_dir/build/rpm"
 install -d -m 755 "$topdir/BUILD" "$topdir/BUILDROOT" "$topdir/RPMS" "$topdir/SOURCES" "$topdir/SPECS" "$topdir/SRPMS" "$project_dir/dist"
 cp "$project_dir/packaging/rpm/sortmedia.spec" "$topdir/SPECS/"
-tar -C "$project_dir" --transform='s,^,sortmedia-0.1.2/,' -czf "$topdir/SOURCES/sortmedia-0.1.2.tar.gz" \
+tar -C "$project_dir" --transform='s,^,sortmedia-0.2.0/,' -czf "$topdir/SOURCES/sortmedia-0.2.0.tar.gz" \
     LICENSE README.md bin src man
 rpmbuild --define "_topdir $topdir" -bb "$topdir/SPECS/sortmedia.spec"
 find "$topdir/RPMS" -name '*.rpm' -exec cp {} "$project_dir/dist/" \;
