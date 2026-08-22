@@ -206,6 +206,35 @@ sortmedia -f /media/camera -d /photos --copy
 sortmedia -c /media/import/.sortmedia.toml
 sortmedia -c ~/photos/.sortmedia.toml -c /media/camera/.import.toml
 .fi
+.SH CRON AUTOMATION
+Use absolute paths in crontab entries. Ensure the config operation is
+.B copy
+or
+.B move ;
+.B preview
+intentionally changes nothing.
+.PP
+Run one local config every five minutes:
+.PP
+.nf
+*/5 * * * * cd /data/import && /usr/bin/sortmedia -r --quiet
+.fi
+.PP
+Run multiple configs sequentially:
+.PP
+.nf
+*/5 * * * * /usr/bin/sortmedia -c /media/iphone/.sortmedia.toml -c /media/camera/.sortmedia.toml --quiet
+.fi
+.PP
+Prevent overlapping runs with
+.BR flock (1):
+.PP
+.nf
+*/5 * * * * /usr/bin/flock -n /tmp/sortmedia-iphone.lock /usr/bin/sortmedia -c /media/iphone/.sortmedia.toml --quiet
+.fi
+.PP
+Use a separate lock file for each independent job. The crontab owner must have
+access to ExifTool and all configured source and destination directories.
 .SH SAFETY
 Use
 .B operation = "preview"

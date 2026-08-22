@@ -344,9 +344,39 @@ sudo tar -xzf dist/sortmedia-0.2.3-linux-any.tar.gz -C /
 
 ## Cron
 
+Cron is the simplest distribution-independent way to process import folders
+automatically. Always use absolute paths and confirm that the selected config
+uses `operation = "copy"` or `operation = "move"`; a preview job reports the
+plan but intentionally changes nothing.
+
+Run the config in a directory every five minutes:
+
 ```cron
-*/15 * * * * /usr/bin/sortmedia -c /data/import/.sortmedia.toml
+*/5 * * * * cd /data/import && /usr/bin/sortmedia -r --quiet
 ```
+
+Run several independent configs on different schedules:
+
+```cron
+*/5 * * * * /usr/bin/sortmedia -c /media/iphone/.sortmedia.toml --quiet
+*/10 * * * * /usr/bin/sortmedia -c /media/camera/.sortmedia.toml --quiet
+```
+
+Several configs can also run sequentially in one invocation:
+
+```cron
+*/5 * * * * /usr/bin/sortmedia -c /media/iphone/.sortmedia.toml -c /media/camera/.sortmedia.toml --quiet
+```
+
+Use `flock` to skip a new invocation when the previous run is still active:
+
+```cron
+*/5 * * * * /usr/bin/flock -n /tmp/sortmedia-iphone.lock /usr/bin/sortmedia -c /media/iphone/.sortmedia.toml --quiet
+```
+
+Use a separate lock file for each independent job. Cron has a restricted
+environment, so ensure that `sortmedia`, `exiftool`, source directories, and
+destination directories are accessible to the user who owns the crontab.
 
 ## Development
 
