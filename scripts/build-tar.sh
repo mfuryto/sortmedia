@@ -2,7 +2,7 @@
 set -eu
 
 project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-version="0.2.2"
+version="0.2.3"
 stage="$project_dir/build/tar/sortmedia-$version-linux-any"
 output="$project_dir/dist/sortmedia-$version-linux-any.tar.gz"
 

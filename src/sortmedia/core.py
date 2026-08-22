@@ -55,7 +55,7 @@ class PlannedFile:
 def content_identifier(metadata: dict[str, object]) -> str | None:
     """Return Apple's Live Photo pairing identifier from ExifTool metadata."""
     for key, value in metadata.items():
-        if key.rsplit(":", 1)[-1] != "ContentIdentifier":
+        if key.rsplit(":", 1)[-1] not in {"ContentIdentifier", "MediaGroupUUID"}:
             continue
         if isinstance(value, str) and value.strip():
             return value.strip()

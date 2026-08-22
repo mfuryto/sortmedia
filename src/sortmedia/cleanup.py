@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import shutil
+from typing import Callable
 
 from .core import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, content_identifier, metadata_for_files
 from .history import RunJournal, file_sha256
@@ -27,6 +28,14 @@ class LivePhotoCandidate:
     content_identifier: str
 
 
+@dataclass(frozen=True)
+class LivePhotoScan:
+    candidates: list[LivePhotoCandidate]
+    videos_scanned: int
+    videos_with_identifier: int
+    images_with_identifier: int
+
+
 def _duration(metadata: dict[str, object]) -> str | None:
     for key, value in metadata.items():
         if key.rsplit(":", 1)[-1] == "Duration" and value not in (None, ""):
@@ -45,6 +54,16 @@ def find_live_photo_videos_with_total(
     root: Path, recursive: bool = True
 ) -> tuple[list[LivePhotoCandidate], int]:
     """Return confirmed Live Photo clips and the number of videos inspected."""
+    scan = scan_live_photo_videos(root, recursive)
+    return scan.candidates, scan.videos_scanned
+
+
+def scan_live_photo_videos(
+    root: Path,
+    recursive: bool = True,
+    progress: Callable[[str, int, int], None] | None = None,
+) -> LivePhotoScan:
+    """Inspect media and report enough detail to explain unmatched libraries."""
     root = root.resolve()
     media: list[Path] = []
     iterator = root.rglob("*") if recursive else root.glob("*")
@@ -54,8 +73,18 @@ def find_live_photo_videos_with_total(
             continue
         if path.suffix.lower() in IMAGE_EXTENSIONS | VIDEO_EXTENSIONS:
             media.append(path.resolve())
+            if progress and len(media) % 250 == 0:
+                progress("Scanning media", len(media), 0)
 
-    metadata = metadata_for_files(media)
+    if progress:
+        progress("Scanning media", len(media), len(media))
+    metadata: dict[Path, dict[str, object]] = {}
+    batch_size = 250
+    for offset in range(0, len(media), batch_size):
+        batch = media[offset : offset + batch_size]
+        metadata.update(metadata_for_files(batch))
+        if progress:
+            progress("Reading metadata", min(offset + len(batch), len(media)), len(media))
     images_by_id: dict[tuple[Path, str], Path] = {}
     for image in media:
         if image.suffix.lower() not in IMAGE_EXTENSIONS:
@@ -82,8 +111,15 @@ def find_live_photo_videos_with_total(
                 content_identifier=identifier,
             )
         )
-    video_count = sum(path.suffix.lower() in VIDEO_EXTENSIONS for path in media)
-    return sorted(matches, key=lambda candidate: candidate.video), video_count
+    videos = [path for path in media if path.suffix.lower() in VIDEO_EXTENSIONS]
+    return LivePhotoScan(
+        candidates=sorted(matches, key=lambda candidate: candidate.video),
+        videos_scanned=len(videos),
+        videos_with_identifier=sum(
+            content_identifier(metadata.get(path, {})) is not None for path in videos
+        ),
+        images_with_identifier=len(images_by_id),
+    )
 
 
 def trash_live_photo_videos(root: Path, videos: list[Path]) -> tuple[str, int]:
