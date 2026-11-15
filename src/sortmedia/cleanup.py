@@ -6,6 +6,7 @@ import shutil
 from typing import Callable
 
 from .core import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, content_identifier, metadata_for_files
+from .exclusions import iter_source_paths
 from .history import RunJournal, file_sha256
 
 
@@ -44,17 +45,17 @@ def _duration(metadata: dict[str, object]) -> str | None:
 
 
 def find_live_photo_videos(
-    root: Path, recursive: bool = True
+    root: Path, recursive: bool = True, *, exclude_folders: tuple[str, ...] = ()
 ) -> list[LivePhotoCandidate]:
-    matches, _ = find_live_photo_videos_with_total(root, recursive)
+    matches, _ = find_live_photo_videos_with_total(root, recursive, exclude_folders=exclude_folders)
     return matches
 
 
 def find_live_photo_videos_with_total(
-    root: Path, recursive: bool = True
+    root: Path, recursive: bool = True, *, exclude_folders: tuple[str, ...] = ()
 ) -> tuple[list[LivePhotoCandidate], int]:
     """Return confirmed Live Photo clips and the number of videos inspected."""
-    scan = scan_live_photo_videos(root, recursive)
+    scan = scan_live_photo_videos(root, recursive, exclude_folders=exclude_folders)
     return scan.candidates, scan.videos_scanned
 
 
@@ -62,11 +63,13 @@ def scan_live_photo_videos(
     root: Path,
     recursive: bool = True,
     progress: Callable[[str, int, int], None] | None = None,
+    *, exclude_folders: tuple[str, ...] = (),
+    on_excluded: Callable[[Path, str], None] | None = None,
 ) -> LivePhotoScan:
     """Inspect media and report enough detail to explain unmatched libraries."""
     root = root.resolve()
     media: list[Path] = []
-    iterator = root.rglob("*") if recursive else root.glob("*")
+    iterator = iter_source_paths(root, recursive, exclude_folders, on_excluded=on_excluded)
     for path in iterator:
         relative = path.relative_to(root)
         if ".sortmedia" in relative.parts or not path.is_file():

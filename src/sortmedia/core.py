@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import os
 import re
 
+from .exclusions import iter_source_paths
 from .config import JobConfig
 from .history import RunJournal
 from .reporting import ConsoleReporter, Reporter
@@ -95,7 +96,7 @@ def _sidecars_for(media: list[Path]) -> list[Path]:
     names = {path.name.casefold() for path in media}
     companions: list[Path] = []
     for path in directory.iterdir():
-        if not path.is_file() or path.suffix.lower() not in SIDECAR_EXTENSIONS:
+        if path.is_symlink() or not path.is_file() or path.suffix.lower() not in SIDECAR_EXTENSIONS:
             continue
         sidecar_base = path.name[: -len(path.suffix)].casefold()
         if sidecar_base in stems or sidecar_base in names:
@@ -103,12 +104,20 @@ def _sidecars_for(media: list[Path]) -> list[Path]:
     return sorted(companions)
 
 
-def media_files(config: JobConfig) -> Iterable[Path]:
-    iterator = config.source.rglob("*") if config.recursive else config.source.glob("*")
+def media_files(config: JobConfig, reporter: Reporter | None = None) -> Iterable[Path]:
+    def report_excluded(path: Path, pattern: str) -> None:
+        if reporter:
+            reporter.event("excluded_directory", path=str(path), pattern=pattern)
+
+    source_root = config.source.resolve()
+    iterator = iter_source_paths(
+        source_root, config.recursive, config.exclude_folders,
+        max_depth=config.max_depth, on_excluded=report_excluded,
+    )
     destination = config.destination.resolve()
     for path in iterator:
         try:
-            relative_parts = path.relative_to(config.source).parts
+            relative_parts = path.relative_to(source_root).parts
         except ValueError:
             relative_parts = ()
         if ".sortmedia" in relative_parts:
@@ -410,7 +419,7 @@ def run_job(
     processed = skipped = 0
     reporter = reporter or ConsoleReporter()
     groups: dict[tuple[Path, str], list[Path]] = {}
-    sources = list(media_files(config))
+    sources = list(media_files(config, reporter))
     metadata_cache: dict[Path, dict[str, object]] = {}
     metadata_batch_size = 250
     if not sources:

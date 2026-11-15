@@ -1,4 +1,4 @@
-.TH SORTMEDIA 1 "August 2026" "sortmedia 0.2.3" "User Commands"
+.TH SORTMEDIA 1 "November 2026" "sortmedia 0.3.0" "User Commands"
 .SH NAME
 sortmedia \- sort photos and videos by recording date
 .SH SYNOPSIS
@@ -143,6 +143,20 @@ Destination directory for the sorted structure.
 .TP
 .B recursive
 Whether to scan source subdirectories.
+.TP
+.B exclude_folders
+Array of case-sensitive directory rules; default is []. A name matches anywhere;
+a path is anchored at the source root. Wildcards * and ? stay within a segment;
+** as a complete segment spans zero or more levels. Absolute paths and .. are
+rejected. Matching subtrees are skipped before scanning and reported in output
+(excluded_directory JSON events). Source symlinks are skipped. Directory read
+errors abort planning before changes are applied.
+.PP
+Filename normalization and Live Photo cleanup prompt for exclusions as a JSON
+array, defaulting to local rules or [] without a config. Rules are rooted at the
+current directory; local rules for a different source are rejected. Overrides
+are temporary. Destination duplicate searches still read excluded folders.
+History, undo, and permanent trash cleanup are unaffected.
 .TP
 .B operation
 .BR preview , " " copy , " or " move .
