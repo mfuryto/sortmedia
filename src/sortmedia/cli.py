@@ -111,7 +111,7 @@ More documentation: man sortmedia""",
         metavar="FILE",
         help="hidden TOML config; repeat to run multiple jobs in order",
     )
-    result.add_argument("--version", action="version", version="%(prog)s 0.3.0")
+    result.add_argument("--version", action="version", version="%(prog)s 0.4.0")
     result.add_argument(
         "-r", "--run-local",
         action="store_true",

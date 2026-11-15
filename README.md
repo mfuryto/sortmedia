@@ -30,7 +30,7 @@ are never overwritten.
 
 ```bash
 # Download the .deb from the latest GitHub release, then:
-sudo apt install ./sortmedia_0.3.0-1_all.deb
+sudo apt install ./sortmedia_0.4.0-1_all.deb
 cd /path/to/your/photos
 sortmedia
 ```
@@ -397,13 +397,13 @@ their native environments on every push and pull request.
 Install the Debian package:
 
 ```bash
-sudo apt install ./dist/sortmedia_0.3.0-1_all.deb
+sudo apt install ./dist/sortmedia_0.4.0-1_all.deb
 ```
 
 The generic archive installs under `/usr/local` when extracted at the root:
 
 ```bash
-sudo tar -xzf dist/sortmedia-0.3.0-linux-any.tar.gz -C /
+sudo tar -xzf dist/sortmedia-0.4.0-linux-any.tar.gz -C /
 ```
 
 ## Cron

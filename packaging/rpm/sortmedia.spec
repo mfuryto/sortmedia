@@ -1,5 +1,5 @@
 Name:           sortmedia
-Version:        0.3.0
+Version:        0.4.0
 Release:        1%{?dist}
 Summary:        Sort photos and videos using recording metadata
 License:        MIT
@@ -37,6 +37,9 @@ install -m 644 README.md %{buildroot}%{_docdir}/sortmedia/
 %{_mandir}/man1/sortmedia.1*
 
 %changelog
+* Sun Nov 15 2026 Mikal Furyto <mfuryto@users.noreply.github.com> - 0.4.0-1
+- Improve filename date parsing with explicit regional order and validated normalization
+
 * Sun Nov 15 2026 Mikal Furyto <mfuryto@users.noreply.github.com> - 0.3.0-1
 - Add predictable folder exclusions for sorting and maintenance
 
