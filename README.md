@@ -30,7 +30,7 @@ are never overwritten.
 
 ```bash
 # Download the .deb from the latest GitHub release, then:
-sudo apt install ./sortmedia_0.2.3-1_all.deb
+sudo apt install ./sortmedia_0.3.0-1_all.deb
 cd /path/to/your/photos
 sortmedia
 ```
@@ -163,7 +163,38 @@ duplicates = "hash"
 timezone = "local"
 perceptual_duplicates = false
 live_photo_videos = "include"
+exclude_folders = ["Cache", "backups/**/raw"]
 ```
+
+`exclude_folders` excludes matching directories and their entire contents from
+source sorting, filename normalization, and Live Photo cleanup. An empty array
+(the default) adds no exclusions. Rules are case-sensitive:
+
+- A name such as `Cache` matches that directory name anywhere.
+- A path such as `backup/Cache` is anchored at the source root.
+- `*`, `?`, and character classes match within one path segment;
+  `**` as a complete segment matches zero or more directory levels.
+- `/` and backslash separators, leading `./`, and trailing `/` are accepted.
+  Absolute paths, `..`, empty segments, and partial `**` segments are rejected.
+
+Excluded directories are pruned before scanning; output lists each excluded
+subtree and its matching rule (`excluded_directory` events with `--json`).
+Counts include only inspected files, not files inside excluded trees. Quiet
+mode suppresses these notices. Unreadable directories stop the scan before any
+changes are applied. Source symlinks, including companion sidecars, are skipped
+so aliases cannot bypass exclusions. `.sortmedia` is always excluded.
+
+The two maintenance menu tools ask for a JSON array of exclusions, for example
+`["Cache", "backups/**/raw"]`. Press Enter to use local config rules, or enter
+`[]` to clear them for that run. Without a config the default is `[]`; no config
+is created. Maintenance paths are rooted at the current directory. If local
+rules belong to a different configured source, maintenance stops rather than
+silently reinterpret those paths. Changes to the prompt are temporary.
+
+Exclusions control source operations, not the destination duplicate index.
+Destination files, including excluded folders when source and destination are
+the same, may still be read and cause an incoming duplicate to be skipped.
+History, undo, and explicit permanent trash cleanup do not use these rules.
 
 `timezone` may be `local`, `UTC`, or an IANA name such as `Europe/Oslo`.
 Timezone-aware video timestamps are converted before directory and filename
@@ -333,13 +364,13 @@ their native environments on every push and pull request.
 Install the Debian package:
 
 ```bash
-sudo apt install ./dist/sortmedia_0.2.3-1_all.deb
+sudo apt install ./dist/sortmedia_0.3.0-1_all.deb
 ```
 
 The generic archive installs under `/usr/local` when extracted at the root:
 
 ```bash
-sudo tar -xzf dist/sortmedia-0.2.3-linux-any.tar.gz -C /
+sudo tar -xzf dist/sortmedia-0.3.0-linux-any.tar.gz -C /
 ```
 
 ## Cron

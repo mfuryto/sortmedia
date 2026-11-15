@@ -10,6 +10,7 @@ import threading
 from typing import Callable
 
 from .config import JobConfig, load_config
+from .exclusions import validate_exclusions
 from .cleanup import format_size, purge_trash, scan_live_photo_videos, trash_live_photo_videos, trash_stats
 from .core import run_job
 from .history import list_runs, undo_run
@@ -109,7 +110,7 @@ More documentation: man sortmedia""",
         metavar="FILE",
         help="hidden TOML config; repeat to run multiple jobs in order",
     )
-    result.add_argument("--version", action="version", version="%(prog)s 0.2.3")
+    result.add_argument("--version", action="version", version="%(prog)s 0.3.0")
     result.add_argument(
         "-r", "--run-local",
         action="store_true",
@@ -163,6 +164,29 @@ def _recursive_maintenance_prompt(input_fn: Callable[[str], str]) -> bool:
     if selection not in {"yes", "no", "y", "n"}:
         raise ValueError("Recursive selection must be yes or no")
     return selection in {"yes", "y"}
+
+
+def _maintenance_exclusions(current: Path, input_fn: Callable[[str], str]) -> tuple[str, ...]:
+    local = current / ".sortmedia.toml"
+    defaults: tuple[str, ...] = ()
+    if local.exists():
+        config = load_config(local)
+        if config.exclude_folders and config.source != current:
+            raise ValueError(
+                "Local exclusion rules belong to a different source directory; "
+                "run maintenance there or use a config whose folder is the current directory"
+            )
+        defaults = config.exclude_folders
+    print("Folder exclusions use the current directory as their root.")
+    value = input_fn(f"Excluded folders as a JSON array [{json.dumps(list(defaults))}]: ").strip()
+    try:
+        return validate_exclusions(json.loads(value) if value else defaults)
+    except json.JSONDecodeError as error:
+        raise ValueError("Excluded folders must be a JSON array, for example [\"Cache\"]") from error
+
+
+def _report_excluded(path: Path, pattern: str) -> None:
+    print(f"[excluded] {path} (rule: {pattern})")
 
 
 def _layout_prompt(
@@ -276,6 +300,7 @@ def create_config_interactive(
             f"duplicates = {json.dumps(duplicates)}",
             f"perceptual_duplicates = {'true' if perceptual in {'yes', 'y'} else 'false'}",
             f"live_photo_videos = {json.dumps(live_photo_videos)}",
+            "exclude_folders = []",
             "",
         )
     )
@@ -388,10 +413,12 @@ def interactive_menu(
             progress: _MaintenanceProgress | None = None
             try:
                 recursive = _recursive_maintenance_prompt(input_fn)
+                exclusions = _maintenance_exclusions(current, input_fn)
                 progress = _MaintenanceProgress()
                 progress.update("Scanning media", 0, 0)
                 scan = scan_live_photo_videos(
-                    current, recursive=recursive, progress=progress.update
+                    current, recursive=recursive, progress=progress.update,
+                    exclude_folders=exclusions, on_excluded=_report_excluded
                 )
             except (OSError, RuntimeError, ValueError) as error:
                 if progress:
@@ -465,16 +492,19 @@ def interactive_menu(
             progress = None
             try:
                 recursive = _recursive_maintenance_prompt(input_fn)
+                exclusions = _maintenance_exclusions(current, input_fn)
                 progress = _MaintenanceProgress()
                 standard_config = JobConfig(
                     source=current,
                     destination=current,
                     filename="{date}_{time}_{original}",
                     timezone="local",
+                    exclude_folders=exclusions,
                 )
                 plans, considered = plan_filename_normalization(
                     current,
                     standard_config,
+                    on_excluded=_report_excluded,
                     recursive=recursive,
                     progress=progress.update,
                 )
