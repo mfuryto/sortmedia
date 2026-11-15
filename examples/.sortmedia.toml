@@ -9,6 +9,8 @@ layout = "{year}/{month}/{day}"
 filename = "{date}_{time}_{original}"
 duplicates = "hash"
 timezone = "local"
+# ymd: year first only. Opt in to dmy or mdy for year-last filename dates.
+filename_date_order = "ymd"
 perceptual_duplicates = false
 live_photo_videos = "include"
 

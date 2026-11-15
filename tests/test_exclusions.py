@@ -123,7 +123,7 @@ class ExclusionTests(unittest.TestCase):
                     config_path.unlink()
                 for tool in ('normalize', 'cleanup'):
                     choice = '6' if tool == 'normalize' else ('3' if has_config else '2')
-                    answers = iter([choice, 'yes', '' if has_config else '["Cache"]'])
+                    answers = iter([choice, 'yes', '' if has_config else '["Cache"]', ''])
                     with patch('sortmedia.cli.plan_filename_normalization', return_value=([], 0)) as planner, patch('sortmedia.cli.scan_live_photo_videos', return_value=LivePhotoScan([], 0, 0, 0)) as cleanup:
                         self.assertEqual(interactive_menu(root, lambda _: next(answers)), 0)
                     if tool == 'normalize':

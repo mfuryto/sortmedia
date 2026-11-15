@@ -11,9 +11,9 @@ import subprocess
 from typing import Iterable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import os
-import re
 
 from .exclusions import iter_source_paths
+from .filename_dates import parse_filename_date, validate_date_order
 from .config import JobConfig
 from .history import RunJournal
 from .reporting import ConsoleReporter, Reporter
@@ -40,10 +40,6 @@ DATE_FIELDS = (
     "QuickTime:CreateDate",
 )
 
-FILENAME_DATE_PATTERNS = (
-    re.compile(r"(?<!\d)(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-](?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})(?!\d)"),
-    re.compile(r"(?<!\d)(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})[_ -](?P<hour>\d{2})[-:.](?P<minute>\d{2})[-:.](?P<second>\d{2})(?!\d)"),
-)
 
 
 @dataclass(frozen=True)
@@ -191,7 +187,9 @@ def recorded_date(
     path: Path,
     timezone_name: str = "local",
     metadata: dict[str, object] | None = None,
+    filename_date_order: str = "ymd",
 ) -> tuple[datetime, str]:
+    validate_date_order(filename_date_order)
     target_timezone = _configured_timezone(timezone_name)
     metadata = metadata if metadata is not None else metadata_for(path)
     for field in DATE_FIELDS:
@@ -201,13 +199,9 @@ def recorded_date(
                 parsed = parsed.astimezone(target_timezone)
             return parsed, field
 
-    for pattern in FILENAME_DATE_PATTERNS:
-        match = pattern.search(path.stem)
-        if match:
-            try:
-                return datetime(**{key: int(value) for key, value in match.groupdict().items()}), "filename"
-            except ValueError:
-                pass
+    filename_date = parse_filename_date(path.stem, filename_date_order)
+    if filename_date is not None:
+        return filename_date.value, "filename" if filename_date.has_time else "filename-date"
 
     # ExifTool exposes the filesystem timestamp separately from embedded media
     # dates. It is deliberately considered only after all recording dates.
@@ -245,7 +239,7 @@ def plan_file(
     config: JobConfig,
     metadata: dict[str, object] | None = None,
 ) -> PlannedFile | None:
-    recorded, source = recorded_date(path, config.timezone, metadata)
+    recorded, source = recorded_date(path, config.timezone, metadata, config.filename_date_order)
     values = {
         "year": recorded.strftime("%Y"),
         "month": recorded.strftime("%m"),

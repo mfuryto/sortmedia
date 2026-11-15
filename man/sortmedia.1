@@ -123,6 +123,10 @@ Show built-in help and exit.
 .TP
 .B \-\-version
 Show the program version and exit.
+.TP
+.BI --filename-date-order " ORDER"
+Override filename date order for this run: ymd (default), dmy, or mdy.
+All choices accept year-first formats; year-last formats require dmy or mdy.
 .SH CONFIGURATION
 .nf
 folder = "incoming"
@@ -179,6 +183,20 @@ Filename template. The original extension is preserved.
 .TP
 .B timezone
 Output timezone: local, UTC, or an IANA name such as Europe/Oslo.
+.TP
+.B filename_date_order
+Defaults to "ymd" (year first only). Accepts YYYY-MM-DD or YYYYMMDD, optionally
+followed by a separated or compact clock. Fractional seconds use one to six
+digits after a period, preserving leading zeros. Set "dmy" or "mdy" explicitly
+to accept DD-MM-YYYY or MM-DD-YYYY in addition to year-first dates.
+Embedded recording metadata takes priority. Invalid dates and clocks are
+rejected, not truncated to date-only values. Filename timezone suffixes are not
+supported. Date-only matches are labeled filename-date and render 00:00:00 as
+a placeholder. Generated timestamp names retain second precision.
+Filename normalization prompts for this choice and uses it for both date
+selection and validated prefix removal. The default is the local config value
+or ymd without a config; overrides are temporary.
+
 .TP
 .B live_photo_videos
 Controls metadata-confirmed Live Photo video companions: include sorts the
