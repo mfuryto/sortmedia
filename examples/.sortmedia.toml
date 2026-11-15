@@ -11,3 +11,6 @@ duplicates = "hash"
 timezone = "local"
 perceptual_duplicates = false
 live_photo_videos = "include"
+
+# Names match anywhere; paths are source-relative. ** spans directory levels.
+exclude_folders = []

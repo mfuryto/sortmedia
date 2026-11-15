@@ -57,7 +57,9 @@ class ConsoleReporter(Reporter):
         if self._progress_active:
             print(file=sys.stderr)
             self._progress_active = False
-        if kind == "duplicate":
+        if kind == "excluded_directory":
+            print(f"[excluded] {values['path']} (rule: {values['pattern']})")
+        elif kind == "duplicate":
             print(f"[duplicate:{values['method']}] {values['source']} ~= {values['existing']} (skipped)")
         elif kind == "file":
             print(f"[{values['date_source']}] {values['source']} -> {values['destination']}")

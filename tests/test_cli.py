@@ -80,7 +80,7 @@ class InteractiveConfigTests(unittest.TestCase):
     def test_filename_normalization_needs_no_config(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            answers = iter(["6", "no"])
+            answers = iter(["6", "no", ""])
             with patch(
                 "sortmedia.cli.plan_filename_normalization", return_value=([], 0)
             ) as planner:

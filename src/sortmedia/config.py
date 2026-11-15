@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from .exclusions import validate_exclusions
+
 try:
     import tomllib
 except ModuleNotFoundError:  # Python 3.10
@@ -23,6 +25,7 @@ class JobConfig:
     perceptual_duplicates: bool = False
     max_depth: int | None = None
     live_photo_videos: str = "include"
+    exclude_folders: tuple[str, ...] = ()
 
 
 def _relative_to_config(value: str, config_dir: Path) -> Path:
@@ -69,4 +72,5 @@ def load_config(path: Path) -> JobConfig:
         perceptual_duplicates=bool(raw.get("perceptual_duplicates", False)),
         max_depth=max_depth,
         live_photo_videos=live_photo_videos,
+        exclude_folders=validate_exclusions(raw.get("exclude_folders", [])),
     )

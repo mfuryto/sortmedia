@@ -8,6 +8,7 @@ import shutil
 from typing import Callable
 import uuid
 
+from .exclusions import iter_source_paths
 from .config import JobConfig
 from .core import (
     IMAGE_EXTENSIONS,
@@ -70,7 +71,7 @@ def _sidecars(media: list[Path]) -> list[Path]:
     names = {path.name.casefold() for path in media}
     result: list[Path] = []
     for path in media[0].parent.iterdir():
-        if not path.is_file() or path.suffix.lower() not in SIDECAR_EXTENSIONS:
+        if path.is_symlink() or not path.is_file() or path.suffix.lower() not in SIDECAR_EXTENSIONS:
             continue
         base = path.name[: -len(path.suffix)].casefold()
         if base in stems or base in names:
@@ -83,11 +84,12 @@ def plan_filename_normalization(
     config: JobConfig,
     recursive: bool = True,
     progress: Callable[[str, int, int], None] | None = None,
+    on_excluded: Callable[[Path, str], None] | None = None,
 ) -> tuple[list[RenamePlan], int]:
     root = root.resolve()
     if progress:
         progress("Scanning files", 0, 0)
-    iterator = root.rglob("*") if recursive else root.glob("*")
+    iterator = iter_source_paths(root, recursive, config.exclude_folders, on_excluded=on_excluded)
     media: list[Path] = []
     for path in iterator:
         if (
