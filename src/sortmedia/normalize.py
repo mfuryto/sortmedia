@@ -3,12 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-import re
 import shutil
 from typing import Callable
 import uuid
 
 from .exclusions import iter_source_paths
+from .filename_dates import parse_filename_date
 from .config import JobConfig
 from .core import (
     IMAGE_EXTENSIONS,
@@ -20,14 +20,6 @@ from .core import (
 from .history import RunJournal, file_sha256
 
 
-DATE_PREFIXES = (
-    re.compile(r"^\d{4}-\d{2}-\d{2}[ _-]+\d{2}[-:]\d{2}[-:]\d{2}[ _-]+"),
-    re.compile(r"^\d{8}[ _-]+\d{6}[ _-]+"),
-    re.compile(r"^\d{4}-\d{2}-\d{2}[ _-]+"),
-    re.compile(r"^\d{8}[ _-]+"),
-)
-
-
 @dataclass(frozen=True)
 class RenamePlan:
     source: Path
@@ -35,19 +27,18 @@ class RenamePlan:
     date_source: str
 
 
-def clean_original_stem(stem: str) -> str:
-    """Remove generated date prefixes while preserving the camera filename."""
+def clean_original_stem(stem: str, filename_date_order: str = "ymd") -> str:
+    """Remove validated date prefixes using the same rules as date selection."""
     cleaned = stem
     while True:
-        updated = cleaned
-        for pattern in DATE_PREFIXES:
-            updated = pattern.sub("", updated, count=1)
-            if updated != cleaned:
-                break
-        if updated == cleaned:
+        parsed = parse_filename_date(cleaned, filename_date_order, anchored=True)
+        if parsed is None or parsed.start != 0:
             break
-        cleaned = updated
-    return cleaned.strip(" _-") or stem
+        remainder = cleaned[parsed.end:]
+        if not remainder or remainder[0] not in " _-":
+            break
+        cleaned = remainder.lstrip(" _-")
+    return cleaned or stem
 
 
 def _render_base(path: Path, recorded: datetime, config: JobConfig) -> str:
@@ -57,7 +48,7 @@ def _render_base(path: Path, recorded: datetime, config: JobConfig) -> str:
         "day": recorded.strftime("%d"),
         "date": recorded.strftime("%Y-%m-%d"),
         "time": recorded.strftime("%H-%M-%S"),
-        "original": clean_original_stem(path.stem),
+        "original": clean_original_stem(path.stem, config.filename_date_order),
         "extension": path.suffix.lower().lstrip("."),
     }
     rendered = config.filename.format(**values)
@@ -123,7 +114,7 @@ def plan_filename_normalization(
             key=lambda path: (0 if path.suffix.lower() in IMAGE_EXTENSIONS else 1, path.name.lower()),
         )
         recorded, date_source = recorded_date(
-            primary, config.timezone, metadata.get(primary.resolve(), {})
+            primary, config.timezone, metadata.get(primary.resolve(), {}), config.filename_date_order
         )
         target_base = _render_base(primary, recorded, config)
         companions = paths + _sidecars(paths)

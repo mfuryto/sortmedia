@@ -11,6 +11,7 @@ from typing import Callable
 
 from .config import JobConfig, load_config
 from .exclusions import validate_exclusions
+from .filename_dates import DATE_ORDERS, validate_date_order
 from .cleanup import format_size, purge_trash, scan_live_photo_videos, trash_live_photo_videos, trash_stats
 from .core import run_job
 from .history import list_runs, undo_run
@@ -110,7 +111,7 @@ More documentation: man sortmedia""",
         metavar="FILE",
         help="hidden TOML config; repeat to run multiple jobs in order",
     )
-    result.add_argument("--version", action="version", version="%(prog)s 0.3.0")
+    result.add_argument("--version", action="version", version="%(prog)s 0.4.0")
     result.add_argument(
         "-r", "--run-local",
         action="store_true",
@@ -130,6 +131,7 @@ More documentation: man sortmedia""",
     result.add_argument("--perceptual", dest="perceptual_duplicates", action="store_true", default=None, help="detect visually similar images")
     result.add_argument("--max-depth", type=int, help="maximum recursive depth; 0 scans only the source directory")
     result.add_argument("--live-photo-videos", choices=("include", "leave", "trash"), help="override Live Photo short-video handling")
+    result.add_argument("--filename-date-order", choices=DATE_ORDERS, help="filename dates: ymd (default), or opt in to dmy/mdy year-last dates")
     result.add_argument("--history", action="store_true", help="show runs recorded in the current directory")
     result.add_argument("--undo", nargs="?", const="latest", metavar="RUN_ID", help="undo the latest or selected run")
     output = result.add_mutually_exclusive_group()
@@ -301,6 +303,7 @@ def create_config_interactive(
             f"perceptual_duplicates = {'true' if perceptual in {'yes', 'y'} else 'false'}",
             f"live_photo_videos = {json.dumps(live_photo_videos)}",
             "exclude_folders = []",
+            'filename_date_order = "ymd"',
             "",
         )
     )
@@ -493,6 +496,9 @@ def interactive_menu(
             try:
                 recursive = _recursive_maintenance_prompt(input_fn)
                 exclusions = _maintenance_exclusions(current, input_fn)
+                default_order = load_config(local_config).filename_date_order if local_config.exists() else "ymd"
+                print("Year-first dates are always accepted; dmy/mdy enables year-last dates.")
+                date_order = validate_date_order(_prompt("Filename date order (ymd/dmy/mdy)", default_order, input_fn))
                 progress = _MaintenanceProgress()
                 standard_config = JobConfig(
                     source=current,
@@ -500,6 +506,7 @@ def interactive_menu(
                     filename="{date}_{time}_{original}",
                     timezone="local",
                     exclude_folders=exclusions,
+                    filename_date_order=date_order,
                 )
                 plans, considered = plan_filename_normalization(
                     current,
@@ -553,7 +560,7 @@ def _apply_overrides(config: JobConfig, args: argparse.Namespace) -> JobConfig:
         values["source"] = args.folder.expanduser().resolve()
     if args.destination is not None:
         values["destination"] = args.destination.expanduser().resolve()
-    for name in ("recursive", "operation", "layout", "filename", "duplicates", "perceptual_duplicates", "max_depth", "live_photo_videos"):
+    for name in ("recursive", "operation", "layout", "filename", "duplicates", "perceptual_duplicates", "max_depth", "live_photo_videos", "filename_date_order"):
         value = getattr(args, name)
         if value is not None:
             values[name] = value
@@ -592,7 +599,7 @@ def main(argv: list[str] | None = None) -> int:
         value is not None
         for value in (
             args.destination, args.recursive, args.operation,
-            args.layout, args.filename, args.duplicates, args.perceptual_duplicates, args.max_depth, args.live_photo_videos,
+            args.layout, args.filename, args.duplicates, args.perceptual_duplicates, args.max_depth, args.live_photo_videos, args.filename_date_order,
         )
     )
     if not args.config and standalone is None and override_requested:

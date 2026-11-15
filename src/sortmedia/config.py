@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .exclusions import validate_exclusions
+from .filename_dates import validate_date_order
 
 try:
     import tomllib
@@ -26,6 +27,7 @@ class JobConfig:
     max_depth: int | None = None
     live_photo_videos: str = "include"
     exclude_folders: tuple[str, ...] = ()
+    filename_date_order: str = "ymd"
 
 
 def _relative_to_config(value: str, config_dir: Path) -> Path:
@@ -73,4 +75,5 @@ def load_config(path: Path) -> JobConfig:
         max_depth=max_depth,
         live_photo_videos=live_photo_videos,
         exclude_folders=validate_exclusions(raw.get("exclude_folders", [])),
+        filename_date_order=validate_date_order(raw.get("filename_date_order", "ymd")),
     )

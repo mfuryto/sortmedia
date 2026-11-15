@@ -30,7 +30,7 @@ are never overwritten.
 
 ```bash
 # Download the .deb from the latest GitHub release, then:
-sudo apt install ./sortmedia_0.3.0-1_all.deb
+sudo apt install ./sortmedia_0.4.0-1_all.deb
 cd /path/to/your/photos
 sortmedia
 ```
@@ -161,6 +161,7 @@ layout = "{year}/{month}/{day}"
 filename = "{date}_{time}_{original}"
 duplicates = "hash"
 timezone = "local"
+filename_date_order = "ymd"
 perceptual_duplicates = false
 live_photo_videos = "include"
 exclude_folders = ["Cache", "backups/**/raw"]
@@ -195,6 +196,38 @@ Exclusions control source operations, not the destination duplicate index.
 Destination files, including excluded folders when source and destination are
 the same, may still be read and cause an incoming duplicate to be skipped.
 History, undo, and explicit permanent trash cleanup do not use these rules.
+
+`filename_date_order` controls dates read from filenames when embedded capture
+metadata has no usable date. The default, `"ymd"`, accepts year-first dates only:
+`2024-08-19` and `20240819`, optionally followed by a clock such as
+`_143052`, `_14-30-52`, ` 14:30:52`, or `T14:30:52`. Separated clocks also accept
+periods and a one-digit hour. Fractional seconds use a period and one to six
+digits; `.012` means 12 milliseconds, and `.000001` means one microsecond.
+Filename clocks have no timezone conversion; timezone suffixes are not accepted.
+
+Year-last dates require an explicit choice: `"dmy"` interprets `03-04-2024` as
+3 April, while `"mdy"` interprets it as 4 March. Both settings also accept the
+year-first formats. No regional order is guessed, including for dates where
+one interpretation would be invalid. Override only the current sort run with:
+
+```bash
+sortmedia -r --filename-date-order dmy
+```
+
+Embedded recording dates keep priority. A valid filename timestamp is preferred
+to a filename date without a clock. Invalid calendar dates, invalid/incomplete
+clocks, and fractions longer than six digits are rejected rather than silently
+reduced to their date prefix. Existing filesystem-date fallbacks then apply.
+Date-only matches are reported as `filename-date`; templates render their time
+as `00:00:00`, which is a placeholder, not a known capture time. Standard output
+filenames retain second precision; fractional seconds are parsed but are not
+added to the generated timestamp.
+
+Filename normalization asks for the date order, defaulting to the local config
+or `ymd` without a config. That choice is temporary. Date-prefix removal uses
+the same validation and selected order, so invalid or unselected regional
+prefixes are preserved, and repeated normalization does not add date prefixes.
+Live Photo cleanup uses pairing identifiers and does not interpret dates.
 
 `timezone` may be `local`, `UTC`, or an IANA name such as `Europe/Oslo`.
 Timezone-aware video timestamps are converted before directory and filename
@@ -364,13 +397,13 @@ their native environments on every push and pull request.
 Install the Debian package:
 
 ```bash
-sudo apt install ./dist/sortmedia_0.3.0-1_all.deb
+sudo apt install ./dist/sortmedia_0.4.0-1_all.deb
 ```
 
 The generic archive installs under `/usr/local` when extracted at the root:
 
 ```bash
-sudo tar -xzf dist/sortmedia-0.3.0-linux-any.tar.gz -C /
+sudo tar -xzf dist/sortmedia-0.4.0-linux-any.tar.gz -C /
 ```
 
 ## Cron
