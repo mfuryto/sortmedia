@@ -19,14 +19,7 @@ install -d -m 755 \
 
 install -m 644 "$project_dir/packaging/debian/control" "$build_root/DEBIAN/control"
 install -m 755 "$project_dir/bin/sortmedia" "$build_root/usr/lib/sortmedia/bin/sortmedia"
-install -m 644 "$project_dir/src/sortmedia/__init__.py" "$build_root/usr/lib/sortmedia/src/sortmedia/__init__.py"
-install -m 644 "$project_dir/src/sortmedia/cli.py" "$build_root/usr/lib/sortmedia/src/sortmedia/cli.py"
-install -m 644 "$project_dir/src/sortmedia/config.py" "$build_root/usr/lib/sortmedia/src/sortmedia/config.py"
-install -m 644 "$project_dir/src/sortmedia/core.py" "$build_root/usr/lib/sortmedia/src/sortmedia/core.py"
-install -m 644 "$project_dir/src/sortmedia/history.py" "$build_root/usr/lib/sortmedia/src/sortmedia/history.py"
-install -m 644 "$project_dir/src/sortmedia/reporting.py" "$build_root/usr/lib/sortmedia/src/sortmedia/reporting.py"
-install -m 644 "$project_dir/src/sortmedia/cleanup.py" "$build_root/usr/lib/sortmedia/src/sortmedia/cleanup.py"
-install -m 644 "$project_dir/src/sortmedia/normalize.py" "$build_root/usr/lib/sortmedia/src/sortmedia/normalize.py"
+install -m 644 "$project_dir/src/sortmedia/"*.py "$build_root/usr/lib/sortmedia/src/sortmedia/"
 install -m 644 "$project_dir/README.md" "$build_root/usr/share/doc/sortmedia/README.md"
 install -m 644 "$project_dir/packaging/debian/copyright" "$build_root/usr/share/doc/sortmedia/copyright"
 
